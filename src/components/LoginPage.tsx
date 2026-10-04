@@ -116,10 +116,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
             {/* Password */}
             <div className="space-y-1.5">
-              <div className="flex justify-between items-center">
-                <label className="text-[10pt] font-bold text-slate-700 uppercase tracking-wider">Password</label>
-                <button type="button" className="text-medical-primary text-[9pt] font-bold hover:underline">Forgot?</button>
-              </div>
+              <label className="text-[10pt] font-bold text-slate-700 uppercase tracking-wider block">Password</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 

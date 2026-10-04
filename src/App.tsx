@@ -14,9 +14,7 @@ import Settings from './components/Settings';
 import Notifications from './components/Notifications';
 import Prescription from './components/Prescription';
 import Payments from './components/Payments';
-import Help from './components/Help';
 import AboutMediFlow from './components/AboutMediFlow';
-import TermsPolicies from './components/TermsPolicies';
 import NotFound from './components/NotFound';
 import ServerError from './components/ServerError';
 import ThankYou from './components/ThankYou';
@@ -29,7 +27,6 @@ import { initializeAllLocalStorage } from './utils/localJsonStorage';
 
 export default function App() {
   const [appState, setAppState] = useState<'splash' | 'login' | 'authenticated'>('splash');
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -95,7 +92,6 @@ export default function App() {
   };
 
   const handleLogin = (role: UserRole) => {
-    setUserRole(role);
     setAppState('authenticated');
     addToast('success', 'Login Successful', `Welcome back, ${role}. Secure EHR session established.`);
     

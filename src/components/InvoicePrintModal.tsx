@@ -1,10 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { 
   Printer, Download, X, CheckCircle2, ShieldCheck, 
-  Receipt, FileText, Building2, Phone, Mail, MapPin, 
-  Check, QrCode, AlertCircle
+  Receipt, Phone, Mail, MapPin, 
+  Check
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
 

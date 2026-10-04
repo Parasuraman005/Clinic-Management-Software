@@ -1,9 +1,8 @@
 import React from 'react';
 import { 
   LayoutDashboard, Users, Calendar, ListOrdered, UserRound, 
-  FileText, ClipboardList, CreditCard, Receipt, BarChart3, 
-  Bell, Settings, LogOut, ChevronLeft, ChevronRight,
-  PanelLeftClose, PanelLeftOpen
+  ClipboardList, CreditCard, Receipt, BarChart3, 
+  Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import clinicLogo from '../assets/images/clinic_logo_minimal_1790833437046.jpg';
 
@@ -42,14 +41,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
   const [isHovered, setIsHovered] = React.useState(false);
   const [isPinned, setIsPinned] = React.useState(false);
 
-  // Group 1: Primary Clinical & Operations
+  // Group 1: Primary Clinical & Operations (Medical Records removed)
   const clinicalItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'patients', label: 'Patients', icon: Users },
     { id: 'appointments', label: 'Appointments', icon: Calendar },
     { id: 'queue', label: 'Queue', icon: ListOrdered, badge: 2, badgeColor: 'bg-amber-100 text-amber-800' },
     { id: 'doctors', label: 'Doctors', icon: UserRound },
-    { id: 'records', label: 'Medical Records', icon: FileText },
     { id: 'prescriptions', label: 'Prescriptions', icon: ClipboardList },
     { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'payments', label: 'Payments', icon: Receipt },
@@ -82,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
         }}
         title={item.label}
         className={`
-          w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-150 group text-left relative
+          w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-150 group text-left relative cursor-pointer
           ${item.isSubItem && isExpanded ? 'pl-5' : ''}
           ${isActive 
             ? 'bg-medical-primary text-white shadow-sm shadow-medical-primary/25 font-bold' 
@@ -130,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
           fixed top-0 left-0 h-full bg-white/95 backdrop-blur-xl border-r border-slate-200/80 z-50 transition-all duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           ${isExpanded ? 'w-64 shadow-xl lg:shadow-xs' : 'w-20'}
-          flex flex-col overflow-hidden font-sans select-none
+          flex flex-col justify-between overflow-hidden font-sans select-none
         `}
       >
         {/* Top Sidebar Header with Pin/Collapse Toggle */}
@@ -149,7 +147,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
           {isExpanded && (
             <button
               onClick={() => setIsPinned(!isPinned)}
-              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
               title={isPinned ? 'Unpin Sidebar' : 'Pin Sidebar Expanded'}
             >
               {isPinned ? <PanelLeftClose size={16} /> : <PanelLeftOpen size={16} />}
@@ -157,15 +155,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
           )}
         </div>
 
-        {/* Navigation List */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-1">
+        {/* Navigation List - Flexibly distributed to fill the vertical height nicely */}
+        <nav className="flex-1 flex flex-col justify-between overflow-y-auto overflow-x-hidden p-3 space-y-2">
           {/* Section 1: Clinical & Operations */}
           <div className="space-y-1">
             {clinicalItems.map(renderNavButton)}
           </div>
 
           {/* Section 2: MANAGEMENT */}
-          <div className="pt-3 pb-1">
+          <div className="pt-2 pb-1">
             {isExpanded ? (
               <div className="px-3 py-1 flex items-center gap-2">
                 <span className="text-[8.5pt] font-bold text-slate-400 uppercase tracking-wider">
@@ -182,7 +180,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
           </div>
 
           {/* Section 3: Settings & Governance */}
-          <div className="pt-3 pb-1">
+          <div className="pt-2 pb-1">
             {isExpanded ? (
               <div className="px-3 py-1 flex items-center gap-2">
                 <span className="text-[8.5pt] font-bold text-slate-400 uppercase tracking-wider">
@@ -216,7 +214,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
           <button 
             onClick={onLogout}
             title="End Session & Logout"
-            className="w-full flex items-center gap-3.5 px-3 py-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-all duration-150 group text-left"
+            className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-all duration-150 group text-left cursor-pointer"
           >
             <div className="shrink-0 w-6 flex justify-center text-rose-500 group-hover:scale-110 transition-transform">
               <LogOut size={18} />

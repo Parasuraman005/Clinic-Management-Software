@@ -1,19 +1,15 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  Users, UserPlus, Search, Filter, MoreVertical, 
-  Shield, Mail, Phone, Clock, Key, Eye, Edit, 
-  Slash, Lock, CheckCircle2, XCircle, Trash2,
-  ChevronDown, SearchIcon, Activity, UserCog,
-  Calendar, ShieldCheck, MailPlus, AlertCircle,
-  Download, LayoutGrid, List, Award, Building,
-  Stethoscope, Receipt, ShieldAlert, Check, X,
-  RefreshCw, Copy, ExternalLink, Sparkles
+  Users, UserPlus, Search, 
+  Mail, Phone, Clock, Key, Eye, Edit, 
+  Slash, CheckCircle2,
+  ShieldCheck, AlertCircle,
+  Download, LayoutGrid, List, Building,
+  Stethoscope, Receipt, X
 } from 'lucide-react';
 import { mockUsers } from '../mockData';
 import { UserAccount } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
-import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { formatIndianPhone } from '../utils/formatters';
 
 const Staff: React.FC = () => {
@@ -26,7 +22,6 @@ const Staff: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState('All Roles');
   const [departmentFilter, setDepartmentFilter] = useState('All Departments');
   const [statusFilter, setStatusFilter] = useState('All Status');
-  const [showFilters, setShowFilters] = useState(false);
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);

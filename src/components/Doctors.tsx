@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  UserRound, Search, Filter, Plus, Eye, Edit, 
+  UserRound, Search, Plus, Eye, Edit, 
   Calendar, MoreVertical, Phone, Mail, Clock, 
-  Award, ShieldCheck, Receipt, ArrowLeft,
-  CheckCircle2, Users, Trash2, X, Briefcase,
-  CalendarDays, FileText, ChevronDown, Sparkles
+  Award, Receipt, ArrowLeft,
+  CheckCircle2, Trash2, X,
+  CalendarDays, ChevronDown
 } from 'lucide-react';
 import { Doctor } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';

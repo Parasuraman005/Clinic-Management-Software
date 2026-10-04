@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  BarChart3, Calendar, Users, TrendingUp, Receipt, 
-  FileText, Download, Printer, Filter, ChevronDown,
-  ArrowUpRight, ArrowDownRight, UserCheck, XCircle, Clock,
-  PieChart, Activity, Briefcase, ChevronRight, Search,
-  AlertCircle, ShieldCheck, RefreshCw, Layers, CheckCircle2
+  BarChart3, Calendar, Users, TrendingUp, 
+  FileText, Download, Printer, Filter, 
+  ArrowUpRight, ArrowDownRight, UserCheck, Clock,
+  Activity, ChevronRight, 
+  AlertCircle, ShieldCheck, Layers, CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import jsPDF from 'jspdf';

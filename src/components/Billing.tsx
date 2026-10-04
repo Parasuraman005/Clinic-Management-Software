@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  Receipt, Printer, Download, Mail, Plus, Trash2, 
+  Receipt, Printer, Download, Plus, Trash2, 
   CreditCard, Banknote, Smartphone, Wallet, Check,
-  CheckCircle2, Search, User, ChevronDown, Percent,
-  Tag, Calculator, ArrowRight, ShieldCheck
+  CheckCircle2, Search,
+  Calculator
 } from 'lucide-react';
 import { mockPatients } from '../mockData';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +14,8 @@ import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { Patient } from '../types';
 import { InvoicePrintModal } from './InvoicePrintModal';
 import { addPaymentRecord } from '../hooks/useSharedPayments';
+import { useSharedPatients } from '../hooks/useSharedPatients';
+import { useActivePatientContext } from '../hooks/useActivePatientContext';
 
 interface BillingProps {
   setActiveTab: (tab: string) => void;
@@ -27,7 +29,10 @@ interface LineItem {
 }
 
 const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
-  const [selectedPatient, setSelectedPatient] = useState<Patient>(mockPatients[0]);
+  const { patients } = useSharedPatients();
+  const { activePatient, setActivePatient: setGlobalActivePatient, pendingBillItems } = useActivePatientContext();
+
+  const [selectedPatient, setSelectedPatient] = useState<Patient>(() => activePatient || patients[0] || mockPatients[0]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -46,12 +51,30 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   const itemSuggestions = useSearchSuggestions(itemSearch);
   const itemSearchRef = useRef<HTMLDivElement>(null);
 
-  // Line items state
-  const [lineItems, setLineItems] = useState<LineItem[]>([
-    { id: 1, desc: 'Consultation Fee (Dr. Sarah Chen)', qty: 1, price: 800 },
-    { id: 2, desc: 'Complete Blood Count (CBC) Test', qty: 1, price: 450 },
-    { id: 3, desc: 'Chest X-Ray Digital View', qty: 1, price: 1200 },
-  ]);
+  // Line items state - prefill from pendingBillItems if present
+  const [lineItems, setLineItems] = useState<LineItem[]>(() => {
+    if (pendingBillItems && pendingBillItems.length > 0) {
+      return pendingBillItems;
+    }
+    return [
+      { id: 1, desc: 'Consultation Fee (Dr. Sarah Chen)', qty: 1, price: 800 },
+      { id: 2, desc: 'Complete Blood Count (CBC) Test', qty: 1, price: 450 },
+      { id: 3, desc: 'Chest X-Ray Digital View', qty: 1, price: 1200 },
+    ];
+  });
+
+  // Sync when activePatient or pendingBillItems update
+  useEffect(() => {
+    if (activePatient) {
+      setSelectedPatient(activePatient);
+    }
+  }, [activePatient]);
+
+  useEffect(() => {
+    if (pendingBillItems && pendingBillItems.length > 0) {
+      setLineItems(pendingBillItems);
+    }
+  }, [pendingBillItems]);
 
   // Financial inputs state
   const [discountType, setDiscountType] = useState<'flat' | 'percent'>('flat');
@@ -75,9 +98,10 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
 
   const handleSelectPatientSuggestion = (item: SuggestionItem) => {
     if (item.type === 'patient') {
-      const patient = mockPatients.find(p => p.id === item.id);
+      const patient = patients.find(p => p.id === item.id) || mockPatients.find(p => p.id === item.id);
       if (patient) {
         setSelectedPatient(patient);
+        setGlobalActivePatient(patient);
         setPatientSearch('');
         setShowPatientSuggestions(false);
       }

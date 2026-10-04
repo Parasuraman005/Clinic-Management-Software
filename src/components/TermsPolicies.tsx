@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
-  ShieldCheck, FileText, Lock, Scale, AlertTriangle, 
-  CheckCircle2, Printer, Search, X, ChevronRight,
-  BookOpen, Building, Stethoscope, Receipt, UserCheck
+  ShieldCheck, Lock, Scale, AlertTriangle, 
+  CheckCircle2, Printer, X, ChevronRight,
+  Stethoscope, Receipt
 } from 'lucide-react';
 
 interface TermsPoliciesProps {
@@ -12,7 +12,6 @@ interface TermsPoliciesProps {
 
 const TermsPolicies: React.FC<TermsPoliciesProps> = ({ onClose, isModal = false }) => {
   const [activeSection, setActiveSection] = useState<'clinical' | 'privacy' | 'prescribing' | 'billing' | 'security'>('clinical');
-  const [searchQuery, setSearchQuery] = useState('');
 
   const sections = [
     { id: 'clinical', title: 'Clinical Governance & EULA', icon: Scale },

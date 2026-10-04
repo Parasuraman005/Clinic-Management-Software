@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { FileQuestion, ArrowLeft, Home, Search, ShieldAlert } from 'lucide-react';
+import { FileQuestion, Home, Search, ShieldAlert } from 'lucide-react';
 
 interface NotFoundProps {
   setActiveTab: (tab: string) => void;

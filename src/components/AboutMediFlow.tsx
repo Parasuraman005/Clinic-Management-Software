@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { 
   Building2, ShieldCheck, Activity, Award, CheckCircle2, 
-  Server, Lock, FileCheck, Phone, Mail, Clock, ExternalLink,
+  Server, Lock, Phone, Mail, Clock,
   Cpu, HeartPulse, Stethoscope, Users, Receipt, Database,
-  ArrowRight, X, Sparkles, HelpCircle, Scale, BookOpen
+  ArrowRight, X, HelpCircle, Scale
 } from 'lucide-react';
 import Help from './Help';
 import TermsPolicies from './TermsPolicies';

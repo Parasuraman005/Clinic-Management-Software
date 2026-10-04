@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ServerCrash, RefreshCw, Home, LifeBuoy, AlertTriangle } from 'lucide-react';
+import { ServerCrash, RefreshCw, Home, LifeBuoy } from 'lucide-react';
 
 interface ServerErrorProps {
   setActiveTab: (tab: string) => void;

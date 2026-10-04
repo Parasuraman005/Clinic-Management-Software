@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
-  ListOrdered, Play, CheckCircle2, MoreVertical, 
-  Clock, AlertCircle, User, ArrowRight, UserCheck, Trash2,
-  Plus, X, Filter, ChevronDown, Search, UserPlus, ShieldAlert,
-  Check, ChevronRight
+  ListOrdered, Play, CheckCircle2, 
+  Clock, AlertCircle, User, Trash2,
+  Plus, X, Search, UserPlus, ShieldAlert,
+  ChevronRight, UserCheck, Pill, CreditCard, Stethoscope
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
@@ -11,6 +11,7 @@ import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useSharedQueue, ExtendedQueueItem } from '../hooks/useSharedQueue';
 import { useSharedDoctors } from '../hooks/useSharedDoctors';
 import { useSharedPatients } from '../hooks/useSharedPatients';
+import { useActivePatientContext } from '../hooks/useActivePatientContext';
 import { Patient } from '../types';
 
 interface QueueProps {
@@ -21,6 +22,7 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
   const { queue, addToQueue: addSharedQueue, updateStatus, removeItem } = useSharedQueue();
   const { doctors } = useSharedDoctors();
   const { patients } = useSharedPatients();
+  const { navigateWithPatient } = useActivePatientContext();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -367,9 +369,79 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                     {/* Actions */}
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5 opacity-100">
+                        {/* Quick Direct Interconnected Rx */}
+                        <button
+                          onClick={() => {
+                            const patient = patients.find(p => p.id === item.patientId || p.name === item.patientName);
+                            if (patient) {
+                              navigateWithPatient(patient, 'prescriptions', setActiveTab);
+                            } else {
+                              navigateWithPatient({
+                                id: item.patientId,
+                                name: item.patientName,
+                                age: 35,
+                                gender: 'Male',
+                                phone: '+91 98765-00000',
+                                lastVisit: 'Today',
+                                status: 'Active',
+                                bloodGroup: 'O+',
+                                address: 'Bangalore, Karnataka',
+                                email: '',
+                                allergies: 'None',
+                                emergencyContact: 'None Provided',
+                                insuranceProvider: 'None',
+                                insuranceNumber: 'N/A'
+                              }, 'prescriptions', setActiveTab);
+                            }
+                          }}
+                          className="px-2 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 rounded text-xs font-bold flex items-center gap-1 transition-all"
+                          title="Generate Prescription for this Patient"
+                        >
+                          <Pill size={11} />
+                          <span>Rx</span>
+                        </button>
+
+                        {/* Quick Direct Interconnected Bill */}
+                        <button
+                          onClick={() => {
+                            const patient = patients.find(p => p.id === item.patientId || p.name === item.patientName);
+                            if (patient) {
+                              navigateWithPatient(patient, 'billing', setActiveTab);
+                            } else {
+                              navigateWithPatient({
+                                id: item.patientId,
+                                name: item.patientName,
+                                age: 35,
+                                gender: 'Male',
+                                phone: '+91 98765-00000',
+                                lastVisit: 'Today',
+                                status: 'Active',
+                                bloodGroup: 'O+',
+                                address: 'Bangalore, Karnataka',
+                                email: '',
+                                allergies: 'None',
+                                emergencyContact: 'None Provided',
+                                insuranceProvider: 'None',
+                                insuranceNumber: 'N/A'
+                              }, 'billing', setActiveTab);
+                            }
+                          }}
+                          className="px-2 py-1 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white border border-purple-200 rounded text-xs font-bold flex items-center gap-1 transition-all"
+                          title="Create Bill for this Patient"
+                        >
+                          <CreditCard size={11} />
+                          <span>Bill</span>
+                        </button>
+
                         {item.status === 'Waiting' ? (
                           <button 
-                            onClick={() => startConsultation(item.id, item.patientName)}
+                            onClick={() => {
+                              startConsultation(item.id, item.patientName);
+                              const patient = patients.find(p => p.id === item.patientId || p.name === item.patientName);
+                              if (patient) {
+                                navigateWithPatient(patient, 'consultation', setActiveTab);
+                              }
+                            }}
                             className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold text-xs shadow-xs transition-all cursor-pointer"
                             title="Start Consultation"
                           >

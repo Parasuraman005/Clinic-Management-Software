@@ -1,12 +1,13 @@
 import React from 'react';
 import { 
-  Users, Calendar, Clock, CheckCircle2, CreditCard, 
-  TrendingUp, ArrowUpRight, Plus, UserPlus, FileText, 
-  Wallet, Stethoscope, Activity, Bell, ChevronRight,
-  ShieldCheck, AlertCircle, Timer, Play
+  Users, Calendar, Clock, CreditCard, 
+  UserPlus, FileText, Wallet, Stethoscope, Activity, Bell, ChevronRight,
+  Timer, Play, Pill
 } from 'lucide-react';
-import { mockPatients, mockAppointments, mockBills } from '../mockData';
+import { mockAppointments, mockBills } from '../mockData';
 import { useSharedQueue } from '../hooks/useSharedQueue';
+import { useSharedPatients } from '../hooks/useSharedPatients';
+import { useSharedPayments } from '../hooks/useSharedPayments';
 
 interface DashboardProps {
   setActiveTab: (tab: string) => void;
@@ -14,20 +15,29 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
   const { queue, updateStatus } = useSharedQueue();
+  const { patients } = useSharedPatients();
+  const { payments } = useSharedPayments();
+
+  const totalRevenueNumber = payments
+    .filter(p => p.status === 'Completed')
+    .reduce((acc, p) => {
+      const num = parseFloat(p.amount.replace(/,/g, ''));
+      return acc + (isNaN(num) ? 0 : num);
+    }, 0);
 
   const stats = [
-    { label: 'Total Patients', value: '1,284', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50', trend: '+12%', desc: 'Registered' },
-    { label: "Today's Visits", value: '24', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50', trend: '+5%', desc: 'Scheduled' },
+    { label: 'Total Patients', value: `${patients.length}`, icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50', trend: '+12%', desc: 'Registered' },
+    { label: "Today's Visits", value: `${mockAppointments.length}`, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50', trend: '+5%', desc: 'Scheduled' },
     { label: 'Waiting Room', value: queue.filter(q => q.status === 'Waiting').length.toString(), icon: Timer, color: 'text-amber-600', bg: 'bg-amber-50', trend: '-2', desc: 'Patients' },
   ];
 
   const quickActions = [
     { label: 'Add Patient', icon: UserPlus, tab: 'patients' },
-    { label: 'Book Appointment', icon: Calendar, tab: 'appointments' },
+    { label: 'Digital Rx', icon: Pill, tab: 'prescriptions' },
     { label: 'Live Queue', icon: Clock, tab: 'queue' },
     { label: 'Consultation', icon: Stethoscope, tab: 'consultation' },
     { label: 'Billing Center', icon: CreditCard, tab: 'billing' },
-    { label: 'Reports', icon: FileText, tab: 'reports' },
+    { label: 'Book Visit', icon: Calendar, tab: 'appointments' },
   ];
 
   return (
@@ -54,9 +64,9 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
           <div className="hidden lg:flex items-center gap-3 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600">
             <span><strong className="text-amber-600">{queue.length}</strong> in queue</span>
             <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-            <span><strong className="text-emerald-600">16</strong> completed</span>
+            <span><strong className="text-emerald-600">{queue.filter(q => q.status === 'Completed').length || 16}</strong> completed</span>
             <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-            <span><strong className="text-medical-primary">₹48.2k</strong> rev</span>
+            <span><strong className="text-medical-primary">₹{(totalRevenueNumber / 1000).toFixed(1)}k</strong> rev</span>
           </div>
           <button 
             onClick={() => setActiveTab('reports')}

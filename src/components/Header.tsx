@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Search, Bell, Settings, UserPlus, MapPin, Activity, ShieldCheck, Sparkles, Command } from 'lucide-react';
+import { Menu, Search, Bell, UserPlus, MapPin } from 'lucide-react';
 import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 

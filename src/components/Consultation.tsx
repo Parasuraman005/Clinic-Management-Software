@@ -1,22 +1,42 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Stethoscope, Save, Printer, Download, Plus, Trash2, Eye, 
-  ChevronRight, ClipboardList, Thermometer, Activity, 
-  Brain, Heart, Pill, Calendar, Clock, CheckCircle2, FileText,
-  ChevronDown, Search
+  Stethoscope, Printer, Download, Plus, Trash2, Eye, 
+  Thermometer, Activity, 
+  Brain, Heart, Pill, Calendar, CheckCircle2, FileText,
+  ChevronDown, User, CreditCard
 } from 'lucide-react';
 import { mockPatients } from '../mockData';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
 import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
+import { useSharedPatients } from '../hooks/useSharedPatients';
+import { useActivePatientContext } from '../hooks/useActivePatientContext';
+import { useSharedQueue } from '../hooks/useSharedQueue';
 
 interface ConsultationProps {
   setActiveTab: (tab: string) => void;
 }
 
 const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
-  const patient = mockPatients[0];
+  const { patients } = useSharedPatients();
+  const { queue, updateStatus } = useSharedQueue();
+  const { activePatient, setActivePatient: setGlobalActivePatient } = useActivePatientContext();
+
+  const [selectedPatient, setSelectedPatient] = useState(activePatient || patients[0] || mockPatients[0]);
+  const patient = selectedPatient;
+
+  // Sync if activePatient changes
+  useEffect(() => {
+    if (activePatient) {
+      setSelectedPatient(activePatient);
+    }
+  }, [activePatient]);
+
+  const [patientSearch, setPatientSearch] = useState('');
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const patientSearchRef = useRef<HTMLDivElement>(null);
+
   const [diagnosisQuery, setDiagnosisQuery] = useState('');
   const [showDiagnosisSuggestions, setShowDiagnosisSuggestions] = useState(false);
   const diagnosisSuggestions = useSearchSuggestions(diagnosisQuery);
@@ -35,6 +55,9 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
       if (medRef.current && !medRef.current.contains(event.target as Node)) {
         setActiveMedSearchId(null);
       }
+      if (patientSearchRef.current && !patientSearchRef.current.contains(event.target as Node)) {
+        setShowPatientDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -47,13 +70,21 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
 
   const handleSelectMedicine = (item: SuggestionItem) => {
     if (item.type === 'medicine' && activeMedSearchId) {
-      // For now just update the UI state if we had one, but this component uses defaultValue for simplicity
-      // In a real app we'd have a state array for medicines
       const input = document.getElementById(activeMedSearchId) as HTMLInputElement;
       if (input) input.value = item.title;
       setActiveMedSearchId(null);
       setMedQuery('');
     }
+  };
+
+  const handleComplete = () => {
+    // If patient is in queue, update status
+    const queueItem = queue.find(q => q.patientId === patient.id && q.status !== 'Completed');
+    if (queueItem) {
+      updateStatus(queueItem.id, 'Completed');
+    }
+    setGlobalActivePatient(patient);
+    alert(`Consultation completed for ${patient.name}. You can now proceed to write a prescription or generate an invoice.`);
   };
 
   const handlePrint = async () => {
@@ -107,10 +138,6 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
     }
   };
 
-  const handleComplete = () => {
-    setActiveTab('billing');
-  };
-
   return (
     <div id="consultation-container" className="space-y-6 animate-in slide-in-from-bottom duration-500 print:p-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
@@ -120,31 +147,94 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
           </div>
           <div>
             <h2 className="text-[14pt] font-bold text-slate-900">Active Consultation</h2>
-            <p className="text-[12pt] text-slate-500">Currently seeing: <span className="font-bold text-slate-700">{patient.name}</span> ({patient.id})</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[12pt] text-slate-500">Currently seeing:</span>
+              <div className="relative" ref={patientSearchRef}>
+                <button 
+                  onClick={() => setShowPatientDropdown(!showPatientDropdown)}
+                  className="font-bold text-slate-800 text-xs px-2.5 py-1 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 flex items-center gap-1.5 shadow-2xs"
+                >
+                  <User size={13} className="text-medical-primary" />
+                  <span>{patient.name} ({patient.id})</span>
+                  <ChevronDown size={13} className="text-slate-400" />
+                </button>
+
+                {showPatientDropdown && (
+                  <div className="absolute left-0 top-full mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-slate-200 z-50 p-2 max-h-60 overflow-y-auto">
+                    <input
+                      type="text"
+                      placeholder="Search patient..."
+                      value={patientSearch}
+                      onChange={(e) => setPatientSearch(e.target.value)}
+                      className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg mb-2 focus:ring-1 focus:ring-medical-primary"
+                    />
+                    <div className="space-y-1">
+                      {patients
+                        .filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase()) || p.id.toLowerCase().includes(patientSearch.toLowerCase()))
+                        .map(p => (
+                          <button
+                            key={p.id}
+                            onClick={() => {
+                              setSelectedPatient(p);
+                              setGlobalActivePatient(p);
+                              setShowPatientDropdown(false);
+                            }}
+                            className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between hover:bg-medical-primary/10 ${
+                              p.id === patient.id ? 'bg-medical-primary/10 font-bold text-medical-primary' : 'text-slate-700'
+                            }`}
+                          >
+                            <span>{p.name}</span>
+                            <span className="font-mono text-[10px] text-slate-400">{p.id}</span>
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Write Prescription for this Patient */}
+          <button
+            onClick={() => {
+              setGlobalActivePatient(patient);
+              setActiveTab('prescriptions');
+            }}
+            className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+          >
+            <Pill size={15} /> Write Rx
+          </button>
+
+          {/* Create Bill for this Patient */}
+          <button
+            onClick={() => {
+              setGlobalActivePatient(patient);
+              setActiveTab('billing');
+            }}
+            className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+          >
+            <CreditCard size={15} /> Bill Patient
+          </button>
+
           <button 
             onClick={handlePrint}
-            className="px-4 py-2 bg-white border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            className="px-3 py-2 bg-white border border-slate-200 rounded-lg font-medium text-xs text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 shadow-2xs"
           >
-            <Printer size={18} /> Print
+            <Printer size={15} /> Print
           </button>
           <button 
             onClick={handleDownload}
-            className="px-4 py-2 bg-white border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-2"
+            className="px-3 py-2 bg-white border border-slate-200 rounded-lg font-medium text-xs text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 shadow-2xs"
           >
-            <Download size={18} /> Download
-          </button>
-          <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50">
-            Pause
+            <Download size={15} /> PDF
           </button>
           <button 
             onClick={handleComplete}
-            className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-bold shadow-md hover:bg-emerald-700 flex items-center gap-2"
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-xs shadow-2xs hover:bg-emerald-700 flex items-center gap-1.5"
           >
-            <CheckCircle2 className="w-5 h-5" />
-            Complete Consultation
+            <CheckCircle2 size={15} />
+            Complete
           </button>
         </div>
       </div>

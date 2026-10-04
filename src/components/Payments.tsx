@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Receipt, Search, Filter, Download, Printer, 
+  Receipt, Search, Download, Printer, 
   ChevronDown, CreditCard, Banknote, Smartphone, 
-  Wallet, CheckCircle2, Clock, MoreVertical, Trash2,
-  Eye, Edit, X, Save, AlertCircle, ShieldCheck,
-  TrendingUp, ArrowUpRight
+  Wallet, CheckCircle2, 
+  Eye, Edit, X, Save, 
+  TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import jsPDF from 'jspdf';

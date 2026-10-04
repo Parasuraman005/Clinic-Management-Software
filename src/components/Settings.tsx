@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Building2, User, Users, Calendar, ListOrdered, 
   CreditCard, Bell, ShieldCheck, Sliders, Save, 
-  Upload, Phone, Mail, MapPin, Hash, Clock, 
-  Lock, CheckCircle2, X, Plus, AlertCircle, RefreshCw,
+  Upload, 
+  CheckCircle2, X, Plus, RefreshCw,
   Database, Download, FileText, AlertTriangle, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

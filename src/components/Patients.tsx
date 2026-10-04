@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, Plus, Eye, Edit, 
-  Calendar, CreditCard, ChevronRight, UserPlus, 
+  UserPlus, 
   ArrowLeft, Mail, Phone, MapPin, Droplets, ShieldCheck, 
-  Clock, FileText, ClipboardList, Trash2,
-  ChevronDown, CheckCircle2, UserCheck, Play, X
+  Clock, FileText, Trash2,
+  ChevronDown, CheckCircle2, Play, X, Pill, Stethoscope, CreditCard
 } from 'lucide-react';
 import { mockDoctors } from '../mockData';
 import { Patient } from '../types';
@@ -14,6 +14,7 @@ import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useSharedQueue } from '../hooks/useSharedQueue';
 import { useSharedPatients } from '../hooks/useSharedPatients';
+import { useActivePatientContext } from '../hooks/useActivePatientContext';
 
 interface PatientsProps {
   setActiveTab: (tab: string) => void;
@@ -21,6 +22,7 @@ interface PatientsProps {
 
 const Patients: React.FC<PatientsProps> = ({ setActiveTab }) => {
   const { patients, deletePatient: deletePatientFromStore, updatePatient } = useSharedPatients();
+  const { navigateWithPatient } = useActivePatientContext();
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [view, setView] = useState<'list' | 'profile' | 'add'>('list');
   const [searchTerm, setSearchTerm] = useState('');
@@ -171,6 +173,22 @@ const Patients: React.FC<PatientsProps> = ({ setActiveTab }) => {
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               <button 
+                onClick={() => navigateWithPatient(selectedPatient, 'prescriptions', setActiveTab)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-sm"
+                title="Generate digital prescription for this patient"
+              >
+                <Pill size={18} />
+                <span>Write Rx</span>
+              </button>
+              <button 
+                onClick={() => navigateWithPatient(selectedPatient, 'consultation', setActiveTab)}
+                className="px-4 py-2 bg-teal-600 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-teal-700 transition-all shadow-sm"
+                title="Start clinical consultation for this patient"
+              >
+                <Stethoscope size={18} />
+                <span>Consult</span>
+              </button>
+              <button 
                 onClick={() => setQueueModalPatient(selectedPatient)}
                 className="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold flex items-center gap-2 hover:bg-amber-600 transition-all shadow-sm"
               >
@@ -178,16 +196,16 @@ const Patients: React.FC<PatientsProps> = ({ setActiveTab }) => {
                 {patientQueueItem ? 'Update Queue' : 'Add to Queue'}
               </button>
               <button 
-                onClick={() => setActiveTab('appointments')}
+                onClick={() => navigateWithPatient(selectedPatient, 'appointments', setActiveTab)}
                 className="px-4 py-2 bg-medical-primary text-white rounded-lg font-medium flex items-center gap-2 hover:bg-medical-primary/90"
               >
                 <Plus size={18} /> New Appointment
               </button>
               <button 
-                onClick={() => setActiveTab('billing')}
-                className="px-4 py-2 bg-white border border-slate-200 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-50"
+                onClick={() => navigateWithPatient(selectedPatient, 'billing', setActiveTab)}
+                className="px-4 py-2 bg-white border border-slate-200 rounded-lg font-medium flex items-center gap-2 hover:bg-slate-50 text-slate-700 shadow-2xs"
               >
-                <FileText size={18} /> Create Bill
+                <CreditCard size={18} /> Create Bill
               </button>
             </div>
           </div>
@@ -579,6 +597,22 @@ const Patients: React.FC<PatientsProps> = ({ setActiveTab }) => {
                     <td className="px-6 py-3.5 text-right">
                       {/* ALL ACTION BUTTONS PERMANENTLY VISIBLE */}
                       <div className="flex items-center justify-end gap-1.5 opacity-100">
+                        <button 
+                          onClick={() => navigateWithPatient(p, 'prescriptions', setActiveTab)}
+                          className="px-2 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white border border-indigo-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shadow-xs"
+                          title="Write Prescription"
+                        >
+                          <Pill size={12} />
+                          <span>Rx</span>
+                        </button>
+                        <button 
+                          onClick={() => navigateWithPatient(p, 'consultation', setActiveTab)}
+                          className="px-2 py-1 bg-teal-50 text-teal-700 hover:bg-teal-600 hover:text-white border border-teal-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shadow-xs"
+                          title="Start Consultation"
+                        >
+                          <Stethoscope size={12} />
+                          <span>Consult</span>
+                        </button>
                         <button 
                           onClick={() => setQueueModalPatient(p)}
                           className="px-2 py-1 bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white border border-amber-200 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shadow-xs"

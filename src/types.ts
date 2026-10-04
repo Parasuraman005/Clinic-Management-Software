@@ -127,14 +127,20 @@ export interface Prescription {
 export interface PrescriptionMedicine {
   id: string;
   name: string;
-  type: string;
-  strength: string;
-  dosage: string;
-  frequency: string;
-  route: string;
-  duration: string;
-  quantity: string;
-  instructions: string;
+  type?: string;
+  strength?: string;
+  dosage?: string;
+  frequency?: string;
+  route?: string;
+  duration?: string;
+  durationDays?: number | string;
+  quantity?: string;
+  instructions?: string;
+  foodTiming?: 'Before Food' | 'After Food' | 'With Food' | 'Empty Stomach' | string;
+  morning?: string | number;
+  lunch?: string | number;
+  evening?: string | number;
+  dinner?: string | number;
 }
 
 export interface SupportTicket {

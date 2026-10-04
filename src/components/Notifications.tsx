@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Bell, CheckCircle2, XCircle, Clock, 
   Calendar, CreditCard, UserPlus, Trash2, 
-  CheckCheck, Search, Filter, MoreVertical, Mail 
+  CheckCheck, Search, Filter, Mail 
 } from 'lucide-react';
 import { mockNotifications } from '../mockData';
 import { SystemNotification } from '../types';

@@ -4,14 +4,8 @@ import {
   Search, 
   Plus, 
   Filter, 
-  ChevronLeft, 
-  ChevronRight, 
   Clock, 
-  User, 
   CheckCircle2, 
-  XCircle, 
-  AlertCircle, 
-  CreditCard, 
   Edit, 
   Trash2, 
   LayoutGrid, 
@@ -22,8 +16,7 @@ import {
   CalendarDays,
   FileText,
   X,
-  RotateCcw,
-  Stethoscope
+  RotateCcw
 } from 'lucide-react';
 import { mockAppointments } from '../mockData';
 import { Appointment } from '../types';
@@ -69,7 +62,6 @@ const Appointments: React.FC<AppointmentsProps> = ({ setActiveTab }) => {
 
   const [appointments, setAppointments] = useState<Appointment[]>(getInitialAppointments);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month'>('month');
 
   // Selected Day for calendar view (day 1 to 31 for current demo month)
   const [selectedDay, setSelectedDay] = useState<number>(1);

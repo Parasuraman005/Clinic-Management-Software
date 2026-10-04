@@ -2,11 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, Users, Calendar, ListOrdered, ClipboardList, 
   CreditCard, BarChart3, ChevronDown, ChevronUp, 
-  HelpCircle, Phone, Mail, Clock, MessageSquare, 
-  Plus, FileText, Send, Paperclip, CheckCircle2,
+  HelpCircle, Phone, MessageSquare, 
+  FileText, Send, CheckCircle2,
   Printer, Wifi, Database, Keyboard, AlertCircle,
-  ExternalLink, ArrowRight, ShieldCheck, RefreshCw,
-  Sparkles, Check, Copy, Laptop, Activity, X
+  ArrowRight, RefreshCw, Sparkles, Laptop, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { mockSupportTickets } from '../mockData';

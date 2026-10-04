@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { CheckCircle2, ArrowRight, Home, Plus, FileText, Printer } from 'lucide-react';
+import { CheckCircle2, Home, Plus, Printer } from 'lucide-react';
 
 interface ThankYouProps {
   setActiveTab: (tab: string) => void;
