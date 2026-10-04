@@ -11,7 +11,14 @@ export const getInitialDoctors = (): Doctor[] => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((d: Doctor) => ({
+        const existingIds = new Set(parsed.map((d: Doctor) => d.id));
+        const merged = [...parsed];
+        mockDoctors.forEach(md => {
+          if (!existingIds.has(md.id)) {
+            merged.push(md);
+          }
+        });
+        return merged.map((d: Doctor) => ({
           ...d,
           phone: formatIndianPhone(d.phone)
         }));

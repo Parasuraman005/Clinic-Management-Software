@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
-import { ShieldCheck, ArrowRight } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { motion } from 'framer-motion';
+import clinicLogo from '../assets/images/clinic_logo_minimal_1790833437046.jpg';
 
 interface SplashScreenProps {
   onFinish: () => void;
@@ -8,103 +8,101 @@ interface SplashScreenProps {
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const [exit, setExit] = useState(false);
+  const hasFinishedRef = useRef(false);
+  const onFinishRef = useRef(onFinish);
+
+  useEffect(() => {
+    onFinishRef.current = onFinish;
+  }, [onFinish]);
+
+  const proceedToLogin = () => {
+    if (hasFinishedRef.current) return;
+    hasFinishedRef.current = true;
+    setExit(true);
+    setTimeout(() => {
+      onFinishRef.current();
+    }, 450);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setExit(true);
-      setTimeout(onFinish, 800);
-    }, 2800);
+      proceedToLogin();
+    }, 2400);
 
-    return () => clearTimeout(timer);
-  }, [onFinish]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+        proceedToLogin();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   return (
     <motion.div 
       initial={{ opacity: 1 }}
       animate={{ opacity: exit ? 0 : 1 }}
-      transition={{ duration: 0.8, ease: "easeInOut" }}
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900 text-white overflow-hidden font-serif"
+      transition={{ duration: 0.45, ease: "easeInOut" }}
+      onClick={proceedToLogin}
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#F4F7FB] text-slate-800 overflow-hidden select-none cursor-pointer p-4"
     >
-      {/* Background Decor Image with fallback */}
-      <div className="absolute inset-0 opacity-15 mix-blend-overlay">
-        <img 
-          src="/src/assets/images/medical_office_background_1790961124610.jpg" 
-          alt="Background" 
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-        />
-      </div>
+      {/* Background Architectural Grid Pattern */}
+      <div 
+        className="absolute inset-0 opacity-[0.035] pointer-events-none" 
+        style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, #0f172a 1px, transparent 0)`,
+          backgroundSize: '24px 24px'
+        }} 
+      />
 
-      {/* Subtle glowing orb */}
-      <div className="absolute w-[500px] h-[500px] bg-medical-primary/20 rounded-full blur-3xl pointer-events-none" />
+      {/* Atmospheric Soft Ambient Lighting */}
+      <div className="absolute w-[500px] h-[500px] bg-medical-primary/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-72 h-72 bg-cyan-400/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
 
+      {/* Center Branding: App Logo + App Name */}
       <motion.div
-        initial={{ scale: 0.85, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 flex flex-col items-center text-center px-4"
+        initial={{ y: 15, opacity: 0, scale: 0.95 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 flex flex-col items-center text-center"
       >
-        {/* Logo Container */}
-        <div className="w-28 h-28 md:w-36 md:h-36 mb-6 relative">
-          <div className="absolute inset-0 bg-medical-primary rounded-3xl blur-2xl opacity-40 animate-pulse" />
-          <img 
-            src="/src/assets/images/clinic_logo_minimal_1790833437046.jpg" 
-            alt="MedFlow Logo" 
-            className="w-full h-full object-contain relative z-10 rounded-3xl shadow-2xl border border-white/10 bg-white"
-            onError={(e) => {
-              e.currentTarget.src = 'https://ui-avatars.com/api/?name=MF&background=0284c7&color=fff&size=256';
-            }}
-          />
-        </div>
-
-        {/* Title & Subtitle */}
-        <div className="space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-            MedFlow Pro
-          </h1>
-          <p className="text-sm md:text-base text-slate-300 font-sans tracking-wide">
-            Enterprise Clinic & Hospital Management System
-          </p>
-        </div>
-
-        {/* Loading Spinner / Dots */}
-        <div className="mt-10 flex items-center gap-2">
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              animate={{ scale: [1, 1.4, 1], opacity: [0.4, 1, 0.4] }}
-              transition={{ 
-                duration: 1, 
-                repeat: Infinity, 
-                delay: i * 0.2,
-                ease: "easeInOut"
-              }}
-              className="w-2 h-2 bg-medical-primary rounded-full"
-            />
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Bottom Footer & Skip Action */}
-      <div className="absolute bottom-10 left-0 right-0 px-6 flex flex-col sm:flex-row items-center justify-between gap-4 font-sans text-xs text-slate-400 max-w-5xl mx-auto z-20">
-        <div className="flex items-center gap-2">
-          <ShieldCheck size={16} className="text-emerald-400" />
-          <span>NABH Compliant · AES-256 Secure Node</span>
-        </div>
-
-        <button
-          onClick={() => {
-            setExit(true);
-            setTimeout(onFinish, 400);
-          }}
-          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-all flex items-center gap-1.5"
+        {/* App Logo */}
+        <motion.div 
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          className="relative mb-6"
         >
-          <span>Enter System</span>
-          <ArrowRight size={14} />
-        </button>
-      </div>
+          <div className="w-24 h-24 md:w-28 md:h-28 rounded-3xl bg-white p-4 shadow-[0_15px_35px_-5px_rgba(2,132,199,0.18),0_5px_15px_-5px_rgba(0,0,0,0.05)] border border-slate-200/80 flex items-center justify-center">
+            <img 
+              src={clinicLogo} 
+              alt="MedFlow Pro Logo" 
+              className="w-full h-full object-contain rounded-2xl"
+              onError={(e) => {
+                e.currentTarget.src = 'https://ui-avatars.com/api/?name=MedFlow&background=0284c7&color=fff&size=256';
+              }}
+            />
+          </div>
+        </motion.div>
+
+        {/* App Name */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-baseline"
+        >
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 font-serif">
+            MedFlow<span className="text-medical-primary">.</span>Pro
+          </h1>
+        </motion.div>
+      </motion.div>
     </motion.div>
   );
 };

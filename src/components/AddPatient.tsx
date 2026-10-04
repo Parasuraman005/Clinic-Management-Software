@@ -1,89 +1,113 @@
 import React, { useState } from 'react';
-import { UserPlus, ArrowLeft, Save, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { 
+  UserPlus, ArrowLeft, Save, CheckCircle2, AlertCircle, 
+  ListOrdered, Phone, User, Calendar, MapPin, 
+  Stethoscope, Clock, ShieldCheck, Mail, ArrowRight
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSharedPatients } from '../hooks/useSharedPatients';
+import { addPatientToQueue } from '../hooks/useSharedQueue';
+import { useSharedDoctors } from '../hooks/useSharedDoctors';
 
 interface AddPatientProps {
   onBack: () => void;
+  setActiveTab?: (tab: string) => void;
 }
 
-const AddPatient: React.FC<AddPatientProps> = ({ onBack }) => {
-  const { addPatient } = useSharedPatients();
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+const RELATIONSHIPS = ['Spouse', 'Parent', 'Child', 'Sibling', 'Guardian', 'Relative', 'Friend', 'Other'];
 
-  // Form State - strictly requested fields only
+const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
+  const { addPatient } = useSharedPatients();
+  const { doctors } = useSharedDoctors();
+
+  // Form State - with sensible defaults
   const [formData, setFormData] = useState({
     fullName: '',
     age: '',
-    gender: '' as 'Male' | 'Female' | 'Other' | '',
+    gender: 'Male' as 'Male' | 'Female' | 'Other' | '',
     phoneNumber: '',
+    email: '',
     address: '',
     bloodGroup: '',
+    allergies: '',
+    // Attendant (optional)
     attendantName: '',
     attendantPhone: '',
-    attendantRelationship: ''
+    attendantRelationship: '',
+    // Queue Assignment (optional)
+    assignedDoctor: 'Dr. Sarah Chen',
+    triagePriority: 'Normal' as 'Normal' | 'Urgent' | 'Emergency',
+    chiefComplaint: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successInfo, setSuccessInfo] = useState<{ id: string; name: string } | null>(null);
+  const [successInfo, setSuccessInfo] = useState<{ id: string; name: string; queueToken?: string } | null>(null);
 
+  // Validation: Only Full Name is mandatory; age must be valid if entered
   const validate = () => {
     const errs: Record<string, string> = {};
 
     if (!formData.fullName.trim()) {
-      errs.fullName = 'Full Name is required';
+      errs.fullName = 'Patient Full Name is required';
     }
-    if (!formData.age.trim() || isNaN(Number(formData.age)) || Number(formData.age) <= 0 || Number(formData.age) > 130) {
+
+    if (formData.age.trim() && (isNaN(Number(formData.age)) || Number(formData.age) <= 0 || Number(formData.age) > 130)) {
       errs.age = 'Please enter a valid age (1-130)';
-    }
-    if (!formData.gender) {
-      errs.gender = 'Gender selection is required';
-    }
-    if (!formData.phoneNumber.trim()) {
-      errs.phoneNumber = 'Phone Number is required';
-    } else if (formData.phoneNumber.trim().length < 7) {
-      errs.phoneNumber = 'Please enter a valid phone number';
-    }
-    if (!formData.address.trim()) {
-      errs.address = 'Residential Address is required';
-    }
-    if (!formData.attendantName.trim()) {
-      errs.attendantName = 'Attendant Name is required';
-    }
-    if (!formData.attendantPhone.trim()) {
-      errs.attendantPhone = 'Attendant Contact Number is required';
-    }
-    if (!formData.attendantRelationship.trim()) {
-      errs.attendantRelationship = 'Relationship with patient is required';
     }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = (sendToQueue: boolean = false) => {
     if (!validate()) return;
 
     setIsSubmitting(true);
 
     try {
-      const created = addPatient({
+      // 1. Create Patient in Database
+      const createdPatient = addPatient({
         name: formData.fullName.trim(),
-        age: Number(formData.age),
-        gender: formData.gender as 'Male' | 'Female' | 'Other',
-        phone: formData.phoneNumber.trim(),
-        address: formData.address.trim(),
+        age: formData.age.trim() ? Number(formData.age) : 30,
+        gender: (formData.gender || 'Male') as 'Male' | 'Female' | 'Other',
+        phone: formData.phoneNumber.trim() || '+91 98765-00000',
+        address: formData.address.trim() || 'Bangalore, Karnataka',
         bloodGroup: formData.bloodGroup || undefined,
-        attendantName: formData.attendantName.trim(),
-        attendantPhone: formData.attendantPhone.trim(),
-        attendantRelationship: formData.attendantRelationship.trim()
+        attendantName: formData.attendantName.trim() || undefined,
+        attendantPhone: formData.attendantPhone.trim() || undefined,
+        attendantRelationship: formData.attendantRelationship.trim() || undefined,
+        allergies: formData.allergies.trim() ? [formData.allergies.trim()] : undefined
       });
 
-      setSuccessInfo({ id: created.id, name: created.name });
+      let tokenNumber: string | undefined = undefined;
+
+      // 2. If sendToQueue is checked, allocate token and push to Live OPD Queue
+      if (sendToQueue) {
+        const queueItem = addPatientToQueue(
+          { name: createdPatient.name, id: createdPatient.id },
+          { 
+            doctorName: formData.assignedDoctor || 'Dr. Sarah Chen', 
+            priority: formData.triagePriority || 'Normal' 
+          }
+        );
+        tokenNumber = queueItem.queueNumber;
+      }
+
+      setSuccessInfo({ 
+        id: createdPatient.id, 
+        name: createdPatient.name,
+        queueToken: tokenNumber
+      });
 
       setTimeout(() => {
         setIsSubmitting(false);
-        onBack(); // Return to patient directory with newly registered patient
+        if (sendToQueue && setActiveTab) {
+          setActiveTab('queue');
+        } else {
+          onBack();
+        }
       }, 1200);
     } catch (err) {
       console.error('Failed to register patient', err);
@@ -92,289 +116,427 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="animate-in slide-in-from-right duration-300 max-w-4xl mx-auto pb-10">
-      {/* Top Navigation */}
-      <button 
-        type="button"
-        onClick={onBack}
-        className="flex items-center gap-2 text-medical-primary font-bold mb-4 hover:translate-x-[-2px] transition-transform text-sm"
-      >
-        <ArrowLeft size={18} />
-        Back to Patient Directory
-      </button>
-
-      {/* Success Notification */}
-      {successInfo && (
-        <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-emerald-800 animate-in fade-in">
-          <CheckCircle2 size={22} className="text-emerald-600 shrink-0" />
+    <div className="animate-in fade-in duration-300 font-serif pb-12 w-full max-w-5xl mx-auto space-y-6">
+      {/* Top Header & Breadcrumbs Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <div className="flex items-center gap-3">
+          <button 
+            type="button"
+            onClick={onBack}
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+            title="Return to Patient Directory"
+          >
+            <ArrowLeft size={18} />
+          </button>
           <div>
-            <p className="font-bold text-sm">Patient Registered Successfully!</p>
-            <p className="text-xs text-emerald-700">
-              {successInfo.name} has been assigned ID <span className="font-bold">{successInfo.id}</span> and is now available in the directory, queue, and appointments.
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg md:text-xl font-bold text-slate-900 leading-tight">
+                New Patient Registration
+              </h1>
+              <span className="px-2 py-0.5 rounded-full bg-medical-primary/10 text-medical-primary text-[10px] font-bold uppercase tracking-wider">
+                NABH EHR
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-sans mt-0.5">
+              Enter patient details. Only Full Name is strictly mandatory.
             </p>
           </div>
         </div>
-      )}
 
-      {/* Main Registration Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Header */}
-        <div className="p-5 md:p-6 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-medical-primary/10 text-medical-primary flex items-center justify-center shrink-0">
-              <UserPlus size={20} />
+        {/* Quick Top Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold font-sans text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => handleSave(false)}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold font-sans shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
+            <Save size={14} />
+            <span>Save Patient</span>
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => handleSave(true)}
+            className="px-4 py-2 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-xl text-xs font-bold font-sans shadow-md shadow-medical-primary/25 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+          >
+            <ListOrdered size={15} />
+            <span>Save and to Queue</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Success Notification Banner */}
+      <AnimatePresence>
+        {successInfo && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 text-emerald-900 shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <CheckCircle2 size={24} className="text-emerald-600 shrink-0" />
+              <div>
+                <p className="font-bold text-sm">Patient Registered Successfully!</p>
+                <p className="text-xs text-emerald-700 font-sans">
+                  <strong>{successInfo.name}</strong> registered with ID <span className="font-mono font-bold">{successInfo.id}</span>.
+                  {successInfo.queueToken && (
+                    <span className="ml-1 text-emerald-800 font-bold">
+                      Allocated OPD Token <span className="px-1.5 py-0.5 bg-emerald-200 rounded font-mono">#{successInfo.queueToken}</span> and sent to queue.
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Full Page Registration Form Cards */}
+      <div className="space-y-6">
+        {/* Card 1: Primary Demographics */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 md:p-6 space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+            <div className="w-7 h-7 rounded-lg bg-medical-primary/10 text-medical-primary flex items-center justify-center font-bold text-xs">
+              1
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-slate-900 leading-tight">Patient Registration</h2>
-              <p className="text-xs md:text-sm text-slate-500">Enter essential patient details and attendant information</p>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Patient Primary Identification</h2>
+              <p className="text-[11px] text-slate-400 font-sans">Essential demographics and contact details</p>
             </div>
           </div>
-          <span className="text-[10pt] font-semibold text-slate-400 uppercase tracking-wider hidden sm:inline-block">
-            Step 1 of 1
-          </span>
-        </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSave} className="p-5 md:p-8 space-y-6">
-          {/* Section 1: Patient Details */}
-          <div>
-            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-              <span className="w-6 h-6 rounded-full bg-medical-primary/10 text-medical-primary text-xs font-bold flex items-center justify-center">1</span>
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Patient Information</h3>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Full Name */}
-              <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
-                <label className="text-xs font-bold text-slate-700">
-                  Full Name <span className="text-rose-500">*</span>
-                </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 font-sans text-xs">
+            {/* Full Name (Mandatory) */}
+            <div className="space-y-1 sm:col-span-2 lg:col-span-2">
+              <label className="font-bold text-slate-700 flex items-center justify-between">
+                <span>Full Name <span className="text-rose-500">*</span></span>
+                <span className="text-[10px] text-slate-400 font-normal">Legal or Official ID Name</span>
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                 <input 
-                  type="text" 
+                  type="text"
+                  required
                   value={formData.fullName}
                   onChange={(e) => {
                     setFormData({ ...formData, fullName: e.target.value });
                     if (errors.fullName) setErrors({ ...errors, fullName: '' });
                   }}
-                  placeholder="e.g. John Anderson"
-                  className={`w-full bg-slate-50 border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 transition-all ${
+                  placeholder="e.g. Ramesh Kumar / Ananya Sharma"
+                  className={`w-full bg-slate-50 border rounded-xl py-2.5 pl-9 pr-3 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 transition-all ${
                     errors.fullName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary/20 focus:border-medical-primary'
                   }`}
                 />
-                {errors.fullName && <p className="text-[11px] text-rose-500 font-medium">{errors.fullName}</p>}
               </div>
+              {errors.fullName && <p className="text-[10px] text-rose-500 font-bold">{errors.fullName}</p>}
+            </div>
 
-              {/* Age */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  Age <span className="text-rose-500">*</span>
-                </label>
+            {/* Phone Number (Optional) */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 flex items-center justify-between">
+                <span>Primary Mobile Number</span>
+                <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                 <input 
-                  type="number" 
-                  min="1" 
+                  type="tel"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  placeholder="+91 98765-43210"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Age (Optional) */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 flex items-center justify-between">
+                <span>Age (Years)</span>
+                <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                <input 
+                  type="number"
+                  min="1"
                   max="130"
                   value={formData.age}
                   onChange={(e) => {
                     setFormData({ ...formData, age: e.target.value });
                     if (errors.age) setErrors({ ...errors, age: '' });
                   }}
-                  placeholder="e.g. 45"
-                  className={`w-full bg-slate-50 border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 transition-all ${
+                  placeholder="e.g. 34"
+                  className={`w-full bg-slate-50 border rounded-xl py-2.5 pl-9 pr-3 text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 transition-all ${
                     errors.age ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary/20 focus:border-medical-primary'
                   }`}
                 />
-                {errors.age && <p className="text-[11px] text-rose-500 font-medium">{errors.age}</p>}
               </div>
+              {errors.age && <p className="text-[10px] text-rose-500 font-bold">{errors.age}</p>}
+            </div>
 
-              {/* Gender */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  Gender <span className="text-rose-500">*</span>
-                </label>
-                <select 
-                  value={formData.gender}
-                  onChange={(e) => {
-                    setFormData({ ...formData, gender: e.target.value as any });
-                    if (errors.gender) setErrors({ ...errors, gender: '' });
-                  }}
-                  className={`w-full bg-slate-50 border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 transition-all cursor-pointer ${
-                    errors.gender ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary/20 focus:border-medical-primary'
-                  }`}
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-                {errors.gender && <p className="text-[11px] text-rose-500 font-medium">{errors.gender}</p>}
+            {/* Gender Chips (Optional) */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 block">
+                Gender
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['Male', 'Female', 'Other'] as const).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, gender: g })}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                      formData.gender === g
+                        ? 'bg-medical-primary text-white border-medical-primary shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
               </div>
+            </div>
 
-              {/* Phone Number */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  Phone Number (+91) <span className="text-rose-500">*</span>
-                </label>
-                <div className={`flex rounded-xl overflow-hidden bg-slate-50 border transition-all ${
-                  errors.phoneNumber ? 'border-rose-400 focus-within:ring-2 focus-within:ring-rose-200' : 'border-slate-200 focus-within:ring-2 focus-within:ring-medical-primary/20 focus-within:border-medical-primary'
-                }`}>
-                  <span className="inline-flex items-center px-3 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 border-r border-slate-200 select-none shrink-0">
-                    +91
-                  </span>
-                  <input 
-                    type="tel" 
-                    value={formData.phoneNumber}
-                    onChange={(e) => {
-                      setFormData({ ...formData, phoneNumber: e.target.value });
-                      if (errors.phoneNumber) setErrors({ ...errors, phoneNumber: '' });
-                    }}
-                    placeholder="98765-43210"
-                    className="w-full bg-transparent p-2.5 text-sm focus:outline-none"
-                  />
-                </div>
-                {errors.phoneNumber && <p className="text-[11px] text-rose-500 font-medium">{errors.phoneNumber}</p>}
-              </div>
+            {/* Blood Group Dropdown (Optional) */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 flex items-center justify-between">
+                <span>Blood Group</span>
+                <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <select
+                value={formData.bloodGroup}
+                onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all cursor-pointer"
+              >
+                <option value="">Select Blood Group...</option>
+                {BLOOD_GROUPS.map((bg) => (
+                  <option key={bg} value={bg}>{bg}</option>
+                ))}
+              </select>
+            </div>
 
-              {/* Blood Group — Optional */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-700">Blood Group</label>
-                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Optional</span>
-                </div>
-                <select 
-                  value={formData.bloodGroup}
-                  onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all cursor-pointer"
-                >
-                  <option value="">Select Blood Group (Optional)</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                </select>
-              </div>
-
-              {/* Address */}
-              <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
-                <label className="text-xs font-bold text-slate-700">
-                  Address <span className="text-rose-500">*</span>
-                </label>
+            {/* Address (Optional) */}
+            <div className="space-y-1 sm:col-span-2 lg:col-span-3">
+              <label className="font-bold text-slate-700 flex items-center justify-between">
+                <span>Residential Address & Location</span>
+                <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3 text-slate-400" size={15} />
                 <textarea 
                   rows={2}
                   value={formData.address}
-                  onChange={(e) => {
-                    setFormData({ ...formData, address: e.target.value });
-                    if (errors.address) setErrors({ ...errors, address: '' });
-                  }}
-                  placeholder="Street address, city, state, postal code"
-                  className={`w-full bg-slate-50 border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 transition-all ${
-                    errors.address ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary/20 focus:border-medical-primary'
-                  }`}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="House/Apartment, Street, Area, City, Pincode"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
                 />
-                {errors.address && <p className="text-[11px] text-rose-500 font-medium">{errors.address}</p>}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Section 2: Attendant Information */}
-          <div>
-            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
-              <span className="w-6 h-6 rounded-full bg-medical-primary/10 text-medical-primary text-xs font-bold flex items-center justify-center">2</span>
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Attendant Information</h3>
+        {/* Card 2: OPD Doctor Queue & Triage Assignment */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 md:p-6 space-y-4 font-sans">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                2
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Doctor Assignment & OPD Queue</h2>
+                <p className="text-[11px] text-slate-400">Select doctor and priority for immediate queue allocation</p>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Live Token Generation
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            {/* Assign Doctor */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 flex items-center gap-1.5">
+                <Stethoscope size={14} className="text-medical-primary" />
+                <span>Consulting Physician</span>
+              </label>
+              <select
+                value={formData.assignedDoctor}
+                onChange={(e) => setFormData({ ...formData, assignedDoctor: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 cursor-pointer"
+              >
+                {doctors.map((doc) => (
+                  <option key={doc.id} value={doc.name}>
+                    {doc.name} ({doc.specialization})
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* Attendant Name */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  Attendant Name <span className="text-rose-500">*</span>
-                </label>
-                <input 
-                  type="text" 
-                  value={formData.attendantName}
-                  onChange={(e) => {
-                    setFormData({ ...formData, attendantName: e.target.value });
-                    if (errors.attendantName) setErrors({ ...errors, attendantName: '' });
-                  }}
-                  placeholder="e.g. Jane Anderson"
-                  className={`w-full bg-slate-50 border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 transition-all ${
-                    errors.attendantName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary/20 focus:border-medical-primary'
-                  }`}
-                />
-                {errors.attendantName && <p className="text-[11px] text-rose-500 font-medium">{errors.attendantName}</p>}
-              </div>
-
-              {/* Attendant Contact Number */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  Attendant Contact Number (+91) <span className="text-rose-500">*</span>
-                </label>
-                <div className={`flex rounded-xl overflow-hidden bg-slate-50 border transition-all ${
-                  errors.attendantPhone ? 'border-rose-400 focus-within:ring-2 focus-within:ring-rose-200' : 'border-slate-200 focus-within:ring-2 focus-within:ring-medical-primary/20 focus-within:border-medical-primary'
-                }`}>
-                  <span className="inline-flex items-center px-3 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 border-r border-slate-200 select-none shrink-0">
-                    +91
-                  </span>
-                  <input 
-                    type="tel" 
-                    value={formData.attendantPhone}
-                    onChange={(e) => {
-                      setFormData({ ...formData, attendantPhone: e.target.value });
-                      if (errors.attendantPhone) setErrors({ ...errors, attendantPhone: '' });
-                    }}
-                    placeholder="99887-55443"
-                    className="w-full bg-transparent p-2.5 text-sm focus:outline-none"
-                  />
-                </div>
-                {errors.attendantPhone && <p className="text-[11px] text-rose-500 font-medium">{errors.attendantPhone}</p>}
-              </div>
-
-              {/* Relationship with Patient */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  Relationship with Patient <span className="text-rose-500">*</span>
-                </label>
-                <input 
-                  type="text" 
-                  value={formData.attendantRelationship}
-                  onChange={(e) => {
-                    setFormData({ ...formData, attendantRelationship: e.target.value });
-                    if (errors.attendantRelationship) setErrors({ ...errors, attendantRelationship: '' });
-                  }}
-                  placeholder="e.g. Spouse, Parent, Sibling"
-                  className={`w-full bg-slate-50 border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 transition-all ${
-                    errors.attendantRelationship ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary/20 focus:border-medical-primary'
-                  }`}
-                />
-                {errors.attendantRelationship && <p className="text-[11px] text-rose-500 font-medium">{errors.attendantRelationship}</p>}
+            {/* Triage Priority */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 flex items-center gap-1.5">
+                <Clock size={14} className="text-amber-500" />
+                <span>Triage Priority</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'Normal', bg: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+                  { id: 'Urgent', bg: 'bg-amber-50 border-amber-200 text-amber-800' },
+                  { id: 'Emergency', bg: 'bg-rose-50 border-rose-200 text-rose-800' }
+                ].map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, triagePriority: p.id as any })}
+                    className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      formData.triagePriority === p.id 
+                        ? `${p.bg} ring-2 ring-medical-primary shadow-2xs font-extrabold` 
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {p.id}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
-            <button 
-              type="button" 
-              onClick={onBack}
+        {/* Card 3: Attendant & Emergency Contact Details (Optional) */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 md:p-6 space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
+              3
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Attendant & Emergency Contact</h2>
+              <p className="text-[11px] text-slate-400 font-sans">Companion or guardian information (All optional)</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans text-xs">
+            {/* Attendant Name */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700">Attendant Name</label>
+              <input 
+                type="text"
+                value={formData.attendantName}
+                onChange={(e) => setFormData({ ...formData, attendantName: e.target.value })}
+                placeholder="e.g. Priya Sharma"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
+              />
+            </div>
+
+            {/* Attendant Phone */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700">Attendant Mobile</label>
+              <input 
+                type="tel"
+                value={formData.attendantPhone}
+                onChange={(e) => setFormData({ ...formData, attendantPhone: e.target.value })}
+                placeholder="+91 99887-11223"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
+              />
+            </div>
+
+            {/* Relationship Dropdown */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700">Relationship</label>
+              <select
+                value={formData.attendantRelationship}
+                onChange={(e) => setFormData({ ...formData, attendantRelationship: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all cursor-pointer"
+              >
+                <option value="">Select Relationship...</option>
+                {RELATIONSHIPS.map((rel) => (
+                  <option key={rel} value={rel}>{rel}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 4: Clinical Allergies & Chief Complaint (Optional) */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 md:p-6 space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs">
+              4
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Clinical Safety & Symptoms</h2>
+              <p className="text-[11px] text-slate-400 font-sans">Drug allergies and preliminary clinical complaints (Optional)</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans text-xs">
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700">Known Drug Allergies</label>
+              <input 
+                type="text"
+                value={formData.allergies}
+                onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+                placeholder="e.g. Penicillin, NSAIDs, Sulfa (or None)"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700">Chief Clinical Complaint / Symptoms</label>
+              <input 
+                type="text"
+                value={formData.chiefComplaint}
+                onChange={(e) => setFormData({ ...formData, chiefComplaint: e.target.value })}
+                placeholder="e.g. Acute fever, headache x 3 days"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Actions Bar */}
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-full sm:w-auto px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold font-sans text-slate-600 hover:bg-slate-50 transition-all cursor-pointer text-center"
+          >
+            Cancel & Return
+          </button>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              type="button"
               disabled={isSubmitting}
-              className="w-full sm:w-auto px-6 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+              onClick={() => handleSave(false)}
+              className="flex-1 sm:flex-initial px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold font-sans shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <X size={16} />
-              Cancel
+              <Save size={15} />
+              <span>Save Patient</span>
             </button>
-            <button 
-              type="submit" 
+
+            <button
+              type="button"
               disabled={isSubmitting}
-              className="w-full sm:w-auto px-8 py-2.5 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-xl text-sm font-bold shadow-md shadow-medical-primary/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              onClick={() => handleSave(true)}
+              className="flex-1 sm:flex-initial px-6 py-2.5 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-xl text-xs font-bold font-sans shadow-md shadow-medical-primary/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <Save size={16} />
-              {isSubmitting ? 'Registering...' : 'Save Patient'}
+              <ListOrdered size={16} />
+              <span>Save and to Queue</span>
+              <ArrowRight size={14} />
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

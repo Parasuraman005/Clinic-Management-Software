@@ -2,9 +2,10 @@ import React from 'react';
 import { 
   LayoutDashboard, Users, Calendar, ListOrdered, UserRound, 
   FileText, ClipboardList, CreditCard, Receipt, BarChart3, 
-  Bell, Settings, HelpCircle, LogOut, ChevronLeft, ChevronRight,
-  Building2, Scale, PanelLeftClose, PanelLeftOpen
+  Bell, Settings, LogOut, ChevronLeft, ChevronRight,
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
+import clinicLogo from '../assets/images/clinic_logo_minimal_1790833437046.jpg';
 
 interface SidebarProps {
   activeTab: string;
@@ -23,6 +24,19 @@ interface NavItem {
   badgeColor?: string;
   isSubItem?: boolean;
 }
+
+const AppLogoIcon: React.FC<{ size?: number; className?: string }> = () => (
+  <div className="w-[19px] h-[19px] rounded-md bg-white p-[1px] shadow-2xs border border-slate-200/70 overflow-hidden flex items-center justify-center shrink-0">
+    <img 
+      src={clinicLogo} 
+      alt="MediFlow Logo" 
+      className="w-full h-full object-contain rounded-xs"
+      onError={(e) => {
+        e.currentTarget.src = 'https://ui-avatars.com/api/?name=M&background=0284c7&color=fff';
+      }}
+    />
+  </div>
+);
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout }) => {
   const [isHovered, setIsHovered] = React.useState(false);
@@ -51,9 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
   // Group 3: System & Governance
   const governanceItems: NavItem[] = [
     { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'help', label: 'Help & Support', icon: HelpCircle },
-    { id: 'about', label: 'About MediFlow', icon: Building2 },
-    { id: 'policies', label: 'Terms & Policies', icon: Scale },
+    { id: 'about', label: 'About MediFlow', icon: AppLogoIcon },
   ];
 
   const isExpanded = isOpen || isHovered || isPinned;

@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   ListOrdered, Play, CheckCircle2, MoreVertical, 
   Clock, AlertCircle, User, ArrowRight, UserCheck, Trash2,
-  Plus, X, Filter, ChevronDown, Search
+  Plus, X, Filter, ChevronDown, Search, UserPlus, ShieldAlert,
+  Check, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
@@ -10,6 +11,7 @@ import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useSharedQueue, ExtendedQueueItem } from '../hooks/useSharedQueue';
 import { useSharedDoctors } from '../hooks/useSharedDoctors';
 import { useSharedPatients } from '../hooks/useSharedPatients';
+import { Patient } from '../types';
 
 interface QueueProps {
   setActiveTab: (tab: string) => void;
@@ -23,8 +25,10 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Autocomplete suggestions containing registered patient names ONLY
+  // Suggestions strictly for registered patients only
   const suggestions = useSearchSuggestions(searchTerm, ['patient']);
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -35,7 +39,7 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
   // Confirmation dialog for delete/remove
   const [itemToDelete, setItemToDelete] = useState<ExtendedQueueItem | null>(null);
 
-  // Toast
+  // Toast notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -53,42 +57,78 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Selecting a patient from the suggestion list adds that patient to the queue immediately
+  // Filter registered patients for quick list
+  const filteredPatients = useMemo(() => {
+    if (!searchTerm.trim()) return patients.slice(0, 5);
+    const q = searchTerm.toLowerCase().trim();
+    return patients.filter(p => 
+      p.name.toLowerCase().includes(q) || 
+      p.id.toLowerCase().includes(q) ||
+      (p.phone && p.phone.includes(q))
+    ).slice(0, 6);
+  }, [patients, searchTerm]);
+
+  // Check if search query exactly matches any patient
+  const exactMatchPatient = useMemo(() => {
+    if (!searchTerm.trim()) return null;
+    const q = searchTerm.toLowerCase().trim();
+    return patients.find(p => p.name.toLowerCase() === q || p.id.toLowerCase() === q);
+  }, [patients, searchTerm]);
+
   const handleSelectSuggestion = (item: SuggestionItem) => {
-    const patientObj = item.payload || patients.find(p => p.id === item.id) || { name: item.title, id: item.id };
-    const added = addSharedQueue(
-      { name: patientObj.name, id: patientObj.id },
-      { doctorName: selectedDoctor, priority: selectedPriority }
-    );
-    showToast(`${added.patientName} added to Queue at Position #${added.queueNumber} (FIFO Order)`);
-    setSearchTerm('');
+    const matched = item.payload || patients.find(p => p.id === item.id);
+    if (matched) {
+      setSelectedPatient(matched);
+      setSearchTerm(matched.name);
+      setValidationError(null);
+    }
     setShowSuggestions(false);
-    setShowAddModal(false);
   };
 
-  const handleManualAdd = (e: React.FormEvent) => {
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setSearchTerm(patient.name);
+    setValidationError(null);
+    setShowSuggestions(false);
+  };
+
+  // Submit Handler: Strict enforcement - Only registered patients can be added
+  const handleConfirmAddToQueue = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchTerm.trim()) return;
 
-    const matchedPatient = patients.find(
-      p => p.name.toLowerCase() === searchTerm.trim().toLowerCase() || p.id.toLowerCase() === searchTerm.trim().toLowerCase()
-    );
+    // 1. If not selected, check if searchTerm matches an existing patient
+    let patientToQueue = selectedPatient;
+    if (!patientToQueue && searchTerm.trim()) {
+      const matched = patients.find(
+        p => p.name.toLowerCase() === searchTerm.trim().toLowerCase() || p.id.toLowerCase() === searchTerm.trim().toLowerCase()
+      );
+      if (matched) {
+        patientToQueue = matched;
+      }
+    }
 
+    // 2. Strict check: Patient MUST be registered
+    if (!patientToQueue) {
+      setValidationError('Patient not found in directory. Only registered patients can be added to the queue. Please register the patient first.');
+      return;
+    }
+
+    // 3. Add to FIFO queue
     const added = addSharedQueue(
-      matchedPatient ? { name: matchedPatient.name, id: matchedPatient.id } : { name: searchTerm.trim() },
+      { name: patientToQueue.name, id: patientToQueue.id },
       { doctorName: selectedDoctor, priority: selectedPriority }
     );
 
-    showToast(`${added.patientName} added to Queue at Position #${added.queueNumber} (FIFO Order)`);
+    showToast(`${added.patientName} (ID: ${added.patientId}) added to Queue at Position #${added.queueNumber}`);
     setSearchTerm('');
-    setShowSuggestions(false);
+    setSelectedPatient(null);
+    setValidationError(null);
     setShowAddModal(false);
   };
 
   const startConsultation = (id: string, patientName: string) => {
     updateStatus(id, 'In Consultation');
     showToast(`Consultation started for ${patientName}`);
-    setTimeout(() => setActiveTab('consultation'), 500);
   };
 
   const completeQueueItem = (id: string, patientName: string) => {
@@ -152,14 +192,19 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
               if (next) startConsultation(next.id, next.patientName);
               else showToast('No waiting patients in queue');
             }}
-            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
             <UserCheck size={15} />
             <span>Call Next Patient</span>
           </button>
           <button 
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-medical-primary text-white rounded-lg text-xs font-bold hover:bg-medical-primary/90 shadow-sm transition-all"
+            onClick={() => {
+              setSelectedPatient(null);
+              setSearchTerm('');
+              setValidationError(null);
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-medical-primary text-white rounded-lg text-xs font-bold hover:bg-medical-primary/90 shadow-sm transition-all cursor-pointer"
           >
             <Plus size={15} />
             <span>Add to Queue</span>
@@ -205,9 +250,9 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
 
         <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Queue Strategy</p>
-            <p className="text-xs font-bold text-slate-800">Strict FIFO</p>
-            <span className="text-[9px] text-slate-400">Entry time prioritized</span>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Queue Policy</p>
+            <p className="text-xs font-bold text-slate-800">Registered Patients Only</p>
+            <span className="text-[9px] text-slate-400">Strict FIFO Allocation</span>
           </div>
           <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
             <CheckCircle2 size={16} />
@@ -325,7 +370,7 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                         {item.status === 'Waiting' ? (
                           <button 
                             onClick={() => startConsultation(item.id, item.patientName)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold text-xs shadow-xs transition-all"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-bold text-xs shadow-xs transition-all cursor-pointer"
                             title="Start Consultation"
                           >
                             <Play size={11} /> Start
@@ -333,7 +378,7 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                         ) : item.status === 'In Consultation' ? (
                           <button 
                             onClick={() => completeQueueItem(item.id, item.patientName)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-bold text-xs shadow-xs transition-all"
+                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-bold text-xs shadow-xs transition-all cursor-pointer"
                             title="Complete Consultation"
                           >
                             <CheckCircle2 size={11} /> Finish
@@ -343,7 +388,7 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                         {/* Delete / Remove with Confirmation Dialog */}
                         <button 
                           onClick={() => setItemToDelete(item)}
-                          className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-md transition-all"
+                          className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-600 hover:text-white rounded-md transition-all cursor-pointer"
                           title="Remove from Queue"
                         >
                           <Trash2 size={14} />
@@ -360,7 +405,7 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                     <Clock size={32} className="mx-auto mb-2 text-slate-300" />
                     <p className="text-sm font-bold text-slate-700">No patients currently in queue.</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Click the "Add to Queue" button above or select a patient from the Patient Directory.
+                      Click the "Add to Queue" button above to select an existing registered patient.
                     </p>
                   </td>
                 </tr>
@@ -375,7 +420,7 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* ADD TO QUEUE MODAL WITH PATIENT-ONLY AUTOCOMPLETE */}
+      {/* STRICT ADD TO QUEUE MODAL (ONLY REGISTERED PATIENTS ALLOWED) */}
       <AnimatePresence>
         {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
@@ -383,43 +428,44 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 overflow-hidden"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 overflow-hidden max-h-[90vh] flex flex-col font-sans"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4 shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-medical-primary/10 text-medical-primary flex items-center justify-center font-bold">
-                    <Plus size={18} />
+                    <ListOrdered size={18} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Add Patient to Queue</h3>
-                    <p className="text-[10px] text-slate-500">Strict FIFO: Patient will be queued at end of line</p>
+                    <h3 className="text-sm font-bold text-slate-900">Add Registered Patient to Queue</h3>
+                    <p className="text-[10px] text-slate-500">Select an existing patient from directory (Strict FIFO order)</p>
                   </div>
                 </div>
-                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-full">
+                <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-full cursor-pointer">
                   <X size={16} />
                 </button>
               </div>
 
-              <form onSubmit={handleManualAdd} className="space-y-4 text-xs">
-                {/* Search field with patient-only autocomplete suggestions */}
+              <form onSubmit={handleConfirmAddToQueue} className="space-y-4 text-xs overflow-y-auto pr-1">
+                {/* Search / Select Patient Input */}
                 <div className="space-y-1.5" ref={searchRef}>
                   <label className="font-bold text-slate-700 uppercase tracking-wider text-[10px] flex items-center justify-between">
-                    <span>Patient Name / ID</span>
-                    <span className="text-slate-400 font-normal">Registered Patients Only</span>
+                    <span>Select Patient from Directory</span>
+                    <span className="text-medical-primary font-bold">Registered Patients Only</span>
                   </label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                     <input 
                       type="text" 
-                      required
                       value={searchTerm}
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
+                        setSelectedPatient(null);
+                        setValidationError(null);
                         setShowSuggestions(true);
                       }}
                       onFocus={() => setShowSuggestions(true)}
-                      placeholder="Type patient name or ID to auto-suggest..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary"
+                      placeholder="Search patient by name, ID or mobile..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-4 text-xs focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary"
                     />
                     <SearchSuggestions 
                       isVisible={showSuggestions} 
@@ -427,10 +473,121 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                       onSelect={handleSelectSuggestion} 
                     />
                   </div>
-                  <p className="text-[10px] text-slate-400">
-                    💡 Clicking a suggested patient will add them directly to the queue.
-                  </p>
                 </div>
+
+                {/* Selected Patient Preview Card */}
+                {selectedPatient ? (
+                  <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-xs shrink-0">
+                        {selectedPatient.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-slate-900 text-xs">{selectedPatient.name}</p>
+                          <span className="px-1.5 py-0.2 bg-emerald-200 text-emerald-800 text-[9px] font-bold rounded">
+                            VERIFIED EHR
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-600 font-mono">
+                          ID: <span className="font-bold">{selectedPatient.id}</span> • {selectedPatient.age} Yrs ({selectedPatient.gender}) • {selectedPatient.phone}
+                        </p>
+                        {selectedPatient.bloodGroup && (
+                          <span className="text-[9px] text-slate-500 font-medium">
+                            Blood Group: <strong className="text-slate-700">{selectedPatient.bloodGroup}</strong>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPatient(null);
+                        setSearchTerm('');
+                      }}
+                      className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                      title="Clear Selection"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  /* Quick Patient Selector Chips from Directory */
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      {searchTerm ? 'Matching Registered Patients:' : 'Recent Registered Patients:'}
+                    </p>
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                      {filteredPatients.map(p => (
+                        <div 
+                          key={p.id}
+                          onClick={() => handleSelectPatient(p)}
+                          className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl flex items-center justify-between cursor-pointer transition-all group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-medical-primary/10 text-medical-primary flex items-center justify-center font-bold text-[10px]">
+                              {p.name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-900 text-xs group-hover:text-medical-primary transition-colors">{p.name}</p>
+                              <p className="text-[9px] text-slate-400 font-mono">ID: {p.id} • {p.phone}</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold text-medical-primary flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Select <ChevronRight size={12} />
+                          </span>
+                        </div>
+                      ))}
+
+                      {filteredPatients.length === 0 && (
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 space-y-2">
+                          <div className="flex items-center gap-1.5 font-bold text-xs">
+                            <AlertCircle size={15} className="text-amber-600 shrink-0" />
+                            <span>Patient Not Registered Yet</span>
+                          </div>
+                          <p className="text-[11px] text-amber-800 leading-relaxed">
+                            "{searchTerm}" was not found in the patient directory. Only registered patients can be added to the queue.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAddModal(false);
+                              setActiveTab('patients');
+                            }}
+                            className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                          >
+                            <UserPlus size={14} />
+                            <span>Register New Patient First</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Validation Error Banner if user tries to submit unregistered name */}
+                {validationError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 space-y-2">
+                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                      <ShieldAlert size={15} className="text-rose-600 shrink-0" />
+                      <span>Registration Required</span>
+                    </div>
+                    <p className="text-[11px] text-rose-700 leading-relaxed">
+                      {validationError}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddModal(false);
+                        setActiveTab('patients');
+                      }}
+                      className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                    >
+                      <UserPlus size={14} />
+                      <span>Go to Patient Registration</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Consulting Doctor Selection */}
                 <div className="space-y-1.5">
@@ -438,7 +595,7 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                   <select 
                     value={selectedDoctor}
                     onChange={(e) => setSelectedDoctor(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs cursor-pointer focus:outline-none focus:border-medical-primary"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs cursor-pointer focus:outline-none focus:border-medical-primary font-medium text-slate-800"
                   >
                     {doctors.map(d => (
                       <option key={d.id} value={d.name}>{d.name} — {d.specialization}</option>
@@ -455,11 +612,11 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                         key={p}
                         type="button"
                         onClick={() => setSelectedPriority(p)}
-                        className={`py-1.5 text-xs font-bold rounded-lg border transition-all ${
+                        className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                           selectedPriority === p
-                            ? p === 'Emergency' ? 'bg-rose-600 text-white border-rose-600'
-                            : p === 'Urgent' ? 'bg-amber-500 text-white border-amber-500'
-                            : 'bg-medical-primary text-white border-medical-primary'
+                            ? p === 'Emergency' ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                            : p === 'Urgent' ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                            : 'bg-medical-primary text-white border-medical-primary shadow-xs'
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -469,20 +626,36 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
-                  <button 
+                {/* Footer Modal Action Buttons */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
+                  <button
                     type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-slate-600 font-bold hover:bg-slate-50"
+                    onClick={() => {
+                      setShowAddModal(false);
+                      setActiveTab('patients');
+                    }}
+                    className="text-xs font-bold text-medical-primary hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    Cancel
+                    <UserPlus size={13} />
+                    <span>New Patient Intake?</span>
                   </button>
-                  <button 
-                    type="submit"
-                    className="px-5 py-1.5 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-lg font-bold shadow-xs"
-                  >
-                    Confirm & Queue (FIFO)
-                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="px-3.5 py-2 border border-slate-200 rounded-xl text-slate-600 font-bold hover:bg-slate-50 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      disabled={!selectedPatient && !exactMatchPatient}
+                      className="px-5 py-2 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-xl font-bold shadow-md shadow-medical-primary/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Confirm & Add to Queue
+                    </button>
+                  </div>
                 </div>
               </form>
             </motion.div>
@@ -510,13 +683,13 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
               <div className="mt-4 flex items-center justify-center gap-2">
                 <button 
                   onClick={() => setItemToDelete(null)}
-                  className="px-3.5 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50"
+                  className="px-3.5 py-1.5 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 cursor-pointer"
                 >
                   Keep in Queue
                 </button>
                 <button 
                   onClick={handleConfirmDelete}
-                  className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs"
+                  className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
                 >
                   Yes, Remove
                 </button>

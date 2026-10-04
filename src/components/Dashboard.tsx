@@ -19,9 +19,6 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
     { label: 'Total Patients', value: '1,284', icon: Users, color: 'text-indigo-600', bg: 'bg-indigo-50', trend: '+12%', desc: 'Registered' },
     { label: "Today's Visits", value: '24', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50', trend: '+5%', desc: 'Scheduled' },
     { label: 'Waiting Room', value: queue.filter(q => q.status === 'Waiting').length.toString(), icon: Timer, color: 'text-amber-600', bg: 'bg-amber-50', trend: '-2', desc: 'Patients' },
-    { label: 'Consultations', value: '16', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', trend: '+8%', desc: 'Completed' },
-    { label: 'Unpaid Bills', value: '₹12.5k', icon: CreditCard, color: 'text-rose-600', bg: 'bg-rose-50', trend: '+4%', desc: 'Due Today' },
-    { label: 'Revenue (24h)', value: '₹48.2k', icon: TrendingUp, color: 'text-medical-primary', bg: 'bg-medical-primary/10', trend: '+15%', desc: 'Processed' },
   ];
 
   const quickActions = [
@@ -78,8 +75,8 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
         </div>
       </div>
 
-      {/* 2. Compact 6-Metric KPI Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5">
+      {/* 2. Compact 3-Metric KPI Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
         {stats.map((stat) => (
           <div 
             key={stat.label} 

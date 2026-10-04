@@ -102,9 +102,11 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ isOpen, on
       ];
 
   const subtotal = lineItems.reduce((acc, it) => acc + (it.qty * it.price), 0);
-  const cgst = subtotal * 0.025;
-  const sgst = subtotal * 0.025;
-  const grandTotal = rawAmount > 0 ? rawAmount : (subtotal + cgst + sgst);
+  const cgst = Math.round(subtotal * 0.025 * 100) / 100;
+  const sgst = Math.round(subtotal * 0.025 * 100) / 100;
+  const grandTotal = (data.items && data.items.length > 0)
+    ? (subtotal + cgst + sgst)
+    : (rawAmount > 0 ? rawAmount : (subtotal + cgst + sgst));
 
   const showToast = (msg: string) => {
     setToastMessage(msg);

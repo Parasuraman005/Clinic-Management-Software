@@ -22,6 +22,12 @@ export const initialPayments: PaymentRecord[] = [
   { id: 'PAY-004', invoice: 'INV-2023-004', patient: 'Emily Davis', patientId: 'P-1006', date: '28/10/2023', amount: '3,250.00', method: 'Bank', status: 'Pending', receivedBy: 'Accounts Dept', notes: 'Awaiting NEFT bank clearance.' },
   { id: 'PAY-005', invoice: 'INV-2023-005', patient: 'Michael Brown', patientId: 'P-1004', date: '28/10/2023', amount: '10,000.00', method: 'Card', status: 'Completed', receivedBy: 'Emma Watson (Receptionist)', notes: 'POS machine swipe approved.' },
   { id: 'PAY-006', invoice: 'INV-2023-006', patient: 'Jane Doe', patientId: 'P-1005', date: '27/10/2023', amount: '450.00', method: 'UPI', status: 'Failed', receivedBy: 'System Gateway', notes: 'UPI transaction timed out.' },
+  { id: 'PAY-007', invoice: 'INV-2023-007', patient: 'Kavita Menon', patientId: 'P-1008', date: '30/10/2023', amount: '8,190.00', method: 'UPI', status: 'Completed', receivedBy: 'Emma Watson (Receptionist)', notes: 'GPay Transaction #GP-994411' },
+  { id: 'PAY-008', invoice: 'INV-2023-008', patient: 'Ananya Sharma', patientId: 'P-1010', date: '27/10/2023', amount: '2,940.00', method: 'Card', status: 'Completed', receivedBy: 'Rajesh Sharma (Accountant)', notes: 'HDFC Bank Visa debit card payment' },
+  { id: 'PAY-009', invoice: 'INV-2023-009', patient: 'Arjun Patel', patientId: 'P-1007', date: '26/10/2023', amount: '1,850.00', method: 'Cash', status: 'Completed', receivedBy: 'Devika Nair (Receptionist)', notes: 'Consultation & allergy medication counter cash' },
+  { id: 'PAY-010', invoice: 'INV-2023-010', patient: 'Ramesh Kumar', patientId: 'P-1009', date: '26/10/2023', amount: '3,400.00', method: 'UPI', status: 'Completed', receivedBy: 'Emma Watson (Receptionist)', notes: 'PhonePe Ref #PP-442211' },
+  { id: 'PAY-011', invoice: 'INV-2023-011', patient: 'Meenakshi Sundaram', patientId: 'P-1012', date: '25/10/2023', amount: '1,500.00', method: 'Card', status: 'Completed', receivedBy: 'Rajesh Sharma (Accountant)', notes: 'ICICI Bank POS terminal swipe' },
+  { id: 'PAY-012', invoice: 'INV-2023-012', patient: 'Devraj Sengupta', patientId: 'P-1011', date: '24/10/2023', amount: '950.00', method: 'Cash', status: 'Completed', receivedBy: 'Devika Nair (Receptionist)', notes: 'General checkup & prescription charge' }
 ];
 
 export const getInitialPayments = (): PaymentRecord[] => {
@@ -30,7 +36,14 @@ export const getInitialPayments = (): PaymentRecord[] => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        const existingIds = new Set(parsed.map((p: PaymentRecord) => p.id));
+        const merged = [...parsed];
+        initialPayments.forEach(ip => {
+          if (!existingIds.has(ip.id)) {
+            merged.push(ip);
+          }
+        });
+        return merged;
       }
     }
   } catch (e) {

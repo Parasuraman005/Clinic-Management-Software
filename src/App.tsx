@@ -25,6 +25,7 @@ import SplashScreen from './components/SplashScreen';
 import LoginPage, { UserRole } from './components/LoginPage';
 import ToastContainer, { ToastMessage, ToastType } from './components/Toast';
 import { motion, AnimatePresence } from 'motion/react';
+import { initializeAllLocalStorage } from './utils/localJsonStorage';
 
 export default function App() {
   const [appState, setAppState] = useState<'splash' | 'login' | 'authenticated'>('splash');
@@ -34,10 +35,20 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  // Initialize Local JSON Storage Engine on app start
   React.useEffect(() => {
+    initializeAllLocalStorage();
+  }, []);
+
+  const handleSplashFinish = React.useCallback(() => {
+    setAppState('login');
+  }, []);
+
+  React.useEffect(() => {
+    if (appState !== 'authenticated') return;
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [appState]);
 
   React.useEffect(() => {
     const titles: Record<string, { title: string; desc: string }> = {
@@ -99,7 +110,7 @@ export default function App() {
   };
 
   if (appState === 'splash') {
-    return <SplashScreen onFinish={() => setAppState('login')} />;
+    return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
   if (appState === 'login') {
@@ -127,11 +138,11 @@ export default function App() {
       case 'notifications':
         return <Notifications />;
       case 'help':
-        return <Help />;
+        return <AboutMediFlow initialSubTab="help" />;
       case 'about':
-        return <AboutMediFlow />;
+        return <AboutMediFlow initialSubTab="overview" />;
       case 'policies':
-        return <TermsPolicies />;
+        return <AboutMediFlow initialSubTab="policies" />;
       case '404':
         return <NotFound setActiveTab={setActiveTab} />;
       case '500':
@@ -170,15 +181,6 @@ export default function App() {
         
         <main className="flex-1 overflow-y-auto p-4 md:p-8 w-full">
           <div className="max-w-[1600px] mx-auto">
-            {/* Quick demo links for error & success pages if desired */}
-            <div className="mb-4 flex items-center justify-end gap-2 text-xs">
-              <span className="text-slate-400 font-sans">Quick Test:</span>
-              <button onClick={() => setActiveTab('404')} className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-medical-primary font-bold shadow-2xs">404 Page</button>
-              <button onClick={() => setActiveTab('500')} className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-medical-primary font-bold shadow-2xs">500 Error</button>
-              <button onClick={() => setActiveTab('thankyou')} className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-medical-primary font-bold shadow-2xs">Thank You</button>
-              <button onClick={() => addToast('success', 'Operation Successful', 'Patient record updated successfully.')} className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 font-bold shadow-2xs">Test Toast</button>
-            </div>
-
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

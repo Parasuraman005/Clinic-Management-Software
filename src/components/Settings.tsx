@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Building2, User, Users, Calendar, ListOrdered, 
   CreditCard, Bell, ShieldCheck, Sliders, Save, 
   Upload, Phone, Mail, MapPin, Hash, Clock, 
-  Lock, CheckCircle2, X, Plus, AlertCircle, RefreshCw
+  Lock, CheckCircle2, X, Plus, AlertCircle, RefreshCw,
+  Database, Download, FileText, AlertTriangle, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  getStorageStats, 
+  downloadDatabaseJsonFile, 
+  importDatabaseFromJson, 
+  resetToSeedDatabase,
+  exportFullDatabaseJson,
+  StorageStats 
+} from '../utils/localJsonStorage';
 
 type SettingsCategory = 
   | 'clinic'
@@ -16,7 +25,8 @@ type SettingsCategory =
   | 'billing'
   | 'notifications'
   | 'security'
-  | 'preferences';
+  | 'preferences'
+  | 'storage';
 
 const SETTINGS_STORAGE_KEY = 'medflow_system_settings';
 
@@ -120,6 +130,7 @@ const Settings: React.FC = () => {
     { id: 'notifications', label: 'Notification Settings', desc: 'Alerts, SMS reminders and email broadcasts', icon: Bell },
     { id: 'security', label: 'Security & Password', desc: 'Authentication, 2FA and session timeouts', icon: ShieldCheck },
     { id: 'preferences', label: 'System Preferences', desc: 'Date formats, interface density and defaults', icon: Sliders },
+    { id: 'storage', label: 'Local JSON Data Storage', desc: 'JSON database export, import, inspect & reset', icon: Database },
   ];
 
   return (
@@ -842,10 +853,316 @@ const Settings: React.FC = () => {
                 </div>
               </motion.form>
             )}
+
+            {/* 10. LOCAL JSON DATA STORAGE & BACKUP */}
+            {activeCategory === 'storage' && (
+              <LocalJsonStorageConsole 
+                onNotify={(msg) => showToast(msg)}
+              />
+            )}
           </AnimatePresence>
         </div>
       </div>
     </div>
+  );
+};
+
+interface LocalJsonStorageConsoleProps {
+  onNotify: (msg: string) => void;
+}
+
+const LocalJsonStorageConsole: React.FC<LocalJsonStorageConsoleProps> = ({ onNotify }) => {
+  const [stats, setStats] = useState<StorageStats>(getStorageStats);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [previewJson, setPreviewJson] = useState<string | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const refreshStats = () => {
+    setStats(getStorageStats());
+  };
+
+  useEffect(() => {
+    refreshStats();
+    const handleStorage = () => refreshStats();
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  const handleDownload = () => {
+    setIsExporting(true);
+    try {
+      downloadDatabaseJsonFile();
+      onNotify('Full Local JSON database exported and downloaded successfully!');
+    } catch (e) {
+      console.error(e);
+      onNotify('Failed to export JSON file.');
+    } finally {
+      setTimeout(() => setIsExporting(false), 800);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (!content) return;
+
+      setIsImporting(true);
+      const result = importDatabaseFromJson(content);
+      if (result.success) {
+        refreshStats();
+        onNotify(result.message);
+      } else {
+        onNotify(result.message);
+      }
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const handleInspectJson = () => {
+    if (previewJson) {
+      setPreviewJson(null);
+    } else {
+      setPreviewJson(exportFullDatabaseJson());
+    }
+  };
+
+  const handleReset = () => {
+    resetToSeedDatabase();
+    refreshStats();
+    setConfirmReset(false);
+    onNotify('Local JSON database restored to factory seed state.');
+  };
+
+  return (
+    <motion.div
+      key="storage"
+      initial={{ opacity: 0, x: 8 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -8 }}
+      className="p-5 space-y-5 text-xs font-sans"
+    >
+      <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-900 font-serif">Local JSON Data Storage & Database Engine</h3>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase">
+              Client JSON DB Active
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-500">
+            All clinic records are stored in browser LocalStorage JSON formats with automated persistence and zero cloud dependencies.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={refreshStats}
+          className="self-start sm:self-auto p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors flex items-center gap-1 text-[11px] font-bold"
+          title="Refresh Storage Metrics"
+        >
+          <RefreshCw size={12} />
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      {/* Storage Metrics Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Registered Patients</span>
+          <p className="text-lg font-bold text-slate-900 tabular-nums">{stats.patientsCount} Records</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_patients_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Attending Doctors</span>
+          <p className="text-lg font-bold text-medical-primary tabular-nums">{stats.doctorsCount} Staff</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_doctors_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Appointments</span>
+          <p className="text-lg font-bold text-amber-600 tabular-nums">{stats.appointmentsCount} Bookings</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_appointments_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">E-Prescriptions</span>
+          <p className="text-lg font-bold text-emerald-600 tabular-nums">{stats.prescriptionsCount} Rx Records</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_prescriptions_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Bills & Invoices</span>
+          <p className="text-lg font-bold text-slate-900 tabular-nums">{stats.billsCount} Invoices</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_bills_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Payment Receipts</span>
+          <p className="text-lg font-bold text-slate-900 tabular-nums">{stats.paymentsCount} Transactions</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_payments_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Live Queue Tokens</span>
+          <p className="text-lg font-bold text-purple-600 tabular-nums">{stats.queueCount} Active FIFO</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_queue_data_fifo</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Local Storage Footprint</span>
+          <p className="text-lg font-bold text-indigo-600 tabular-nums">{stats.totalSizeFormatted}</p>
+          <span className="text-[9px] text-slate-500">Updated: {stats.lastUpdated}</span>
+        </div>
+      </div>
+
+      {/* Main Action Triggers */}
+      <div className="p-4 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+          <div>
+            <h4 className="font-bold text-sm font-serif">JSON Database Backup & Portability</h4>
+            <p className="text-[11px] text-slate-300">
+              Download your entire clinic database as a structured JSON file or restore from a previous JSON backup.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleInspectJson}
+              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border border-white/10"
+            >
+              <FileText size={13} />
+              <span>{previewJson ? 'Hide Raw JSON' : 'Inspect Raw JSON'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {/* Export JSON Button */}
+          <button
+            type="button"
+            disabled={isExporting}
+            onClick={handleDownload}
+            className="p-3 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-between shadow-md shadow-medical-primary/20 cursor-pointer disabled:opacity-50"
+          >
+            <div className="flex items-center gap-2.5 text-left">
+              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                <Download size={16} />
+              </div>
+              <div>
+                <p className="font-bold">Export Full Database (.json)</p>
+                <p className="text-[10px] text-cyan-100 font-normal">Downloads complete clinical backup</p>
+              </div>
+            </div>
+            <span className="px-2 py-0.5 rounded bg-white/20 text-[10px]">.json</span>
+          </button>
+
+          {/* Import JSON Button */}
+          <div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              accept=".json,application/json" 
+              onChange={handleFileChange} 
+              className="hidden" 
+            />
+            <button
+              type="button"
+              disabled={isImporting}
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full p-3 bg-white/10 hover:bg-white/15 border border-white/20 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer disabled:opacity-50"
+            >
+              <div className="flex items-center gap-2.5 text-left">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <Upload size={16} />
+                </div>
+                <div>
+                  <p className="font-bold">Import / Restore Database</p>
+                  <p className="text-[10px] text-slate-300 font-normal">Upload JSON backup file to restore</p>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Restore</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Raw JSON Code Viewer Modal / Collapse */}
+      <AnimatePresence>
+        {previewJson && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="p-4 bg-slate-900 text-slate-200 rounded-2xl border border-slate-800 space-y-2 overflow-hidden"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span className="font-mono text-[10px] text-slate-400 uppercase tracking-wider">
+                Raw JSON Snapshot (MedFlow Database)
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(previewJson);
+                  onNotify('Raw JSON copied to clipboard!');
+                }}
+                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono flex items-center gap-1 cursor-pointer"
+              >
+                <Check size={11} /> Copy JSON
+              </button>
+            </div>
+            <pre className="text-[10px] font-mono max-h-64 overflow-y-auto p-2 bg-slate-950/80 rounded-xl text-emerald-400 leading-relaxed">
+              {previewJson}
+            </pre>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Danger Zone: Factory Reset */}
+      <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-3">
+        <div className="flex items-center gap-2 text-rose-900 font-bold text-xs">
+          <AlertTriangle size={16} className="text-rose-600 shrink-0" />
+          <span>Reset Local Database to Seed Records</span>
+        </div>
+        <p className="text-[11px] text-rose-700 leading-relaxed">
+          This operation resets all LocalStorage JSON records back to the default institutional seed dataset (12 patients, 6 doctors, 12 appointments, 8 bills).
+        </p>
+        
+        {confirmReset ? (
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-xs cursor-pointer"
+            >
+              Confirm Factory Reset
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmReset(false)}
+              className="px-3.5 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmReset(true)}
+            className="px-4 py-2 border border-rose-300 bg-white hover:bg-rose-100/50 text-rose-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+          >
+            Reset Database to Seed State
+          </button>
+        )}
+      </div>
+    </motion.div>
   );
 };
 

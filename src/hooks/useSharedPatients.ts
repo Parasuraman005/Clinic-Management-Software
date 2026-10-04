@@ -11,7 +11,15 @@ export const getInitialPatients = (): Patient[] => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((p: Patient) => ({
+        // Merge with mock patients to ensure all rich demo records are available
+        const existingIds = new Set(parsed.map((p: Patient) => p.id));
+        const merged = [...parsed];
+        mockPatients.forEach(mp => {
+          if (!existingIds.has(mp.id)) {
+            merged.push(mp);
+          }
+        });
+        return merged.map((p: Patient) => ({
           ...p,
           phone: formatIndianPhone(p.phone)
         }));
@@ -40,14 +48,16 @@ const broadcast = () => {
 
 export const addPatientRecord = (data: {
   name: string;
-  age: number;
-  gender: 'Male' | 'Female' | 'Other';
-  phone: string;
-  address: string;
+  age?: number;
+  gender?: 'Male' | 'Female' | 'Other';
+  phone?: string;
+  address?: string;
   bloodGroup?: string;
-  attendantName: string;
-  attendantPhone: string;
-  attendantRelationship: string;
+  attendantName?: string;
+  attendantPhone?: string;
+  attendantRelationship?: string;
+  allergies?: string | string[];
+  email?: string;
 }): Patient => {
   const nextIdNum = currentPatients.length > 0
     ? Math.max(...currentPatients.map(p => {
@@ -56,22 +66,30 @@ export const addPatientRecord = (data: {
       })) + 1
     : 1001;
 
-  const formattedPhone = formatIndianPhone(data.phone);
-  const formattedAttendantPhone = formatIndianPhone(data.attendantPhone);
+  const formattedPhone = formatIndianPhone(data.phone || '+91 98765-00000');
+  const formattedAttendantPhone = data.attendantPhone ? formatIndianPhone(data.attendantPhone) : '';
+
+  const emergencyContactStr = data.attendantName 
+    ? `${data.attendantName} (${data.attendantRelationship || 'Attendant'})${formattedAttendantPhone ? ` - ${formattedAttendantPhone}` : ''}`
+    : 'None Provided';
+
+  const allergiesStr = Array.isArray(data.allergies) 
+    ? data.allergies.join(', ') 
+    : (data.allergies || 'None recorded');
 
   const newPatient: Patient = {
     id: `P-${nextIdNum}`,
     name: data.name.trim(),
-    age: data.age,
-    gender: data.gender,
+    age: data.age || 30,
+    gender: data.gender || 'Male',
     phone: formattedPhone,
-    email: '',
+    email: data.email || '',
     lastVisit: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }),
     status: 'Active',
     bloodGroup: data.bloodGroup || 'Not Specified',
-    address: data.address.trim(),
-    allergies: 'None recorded',
-    emergencyContact: `${data.attendantName} (${data.attendantRelationship}) - ${formattedAttendantPhone}`,
+    address: (data.address || 'Bangalore, Karnataka').trim(),
+    allergies: allergiesStr,
+    emergencyContact: emergencyContactStr,
     insuranceProvider: 'None',
     insuranceNumber: 'N/A'
   };

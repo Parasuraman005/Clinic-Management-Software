@@ -20,7 +20,7 @@ const defaultQueue: ExtendedQueueItem[] = [
     priority: 'Normal',
     status: 'Waiting',
     addedTime: '09:30 AM',
-    entryTimestamp: Date.now() - 15 * 60 * 1000
+    entryTimestamp: Date.now() - 25 * 60 * 1000
   },
   {
     id: 'Q-002',
@@ -33,7 +33,59 @@ const defaultQueue: ExtendedQueueItem[] = [
     priority: 'Urgent',
     status: 'In Consultation',
     addedTime: '09:45 AM',
+    entryTimestamp: Date.now() - 20 * 60 * 1000
+  },
+  {
+    id: 'Q-003',
+    patientId: 'P-1003',
+    patientName: 'Robert Wilson',
+    appointmentId: 'A-5003',
+    queueNumber: '03',
+    doctorName: 'Dr. Michael Roberts',
+    waitingTime: '25 mins',
+    priority: 'Urgent',
+    status: 'Waiting',
+    addedTime: '10:00 AM',
+    entryTimestamp: Date.now() - 15 * 60 * 1000
+  },
+  {
+    id: 'Q-004',
+    patientId: 'P-1006',
+    patientName: 'Emily Davis',
+    appointmentId: 'A-5004',
+    queueNumber: '04',
+    doctorName: 'Dr. Ananya Iyer',
+    waitingTime: '10 mins',
+    priority: 'Normal',
+    status: 'Waiting',
+    addedTime: '10:15 AM',
+    entryTimestamp: Date.now() - 10 * 60 * 1000
+  },
+  {
+    id: 'Q-005',
+    patientId: 'P-1004',
+    patientName: 'Michael Brown',
+    appointmentId: 'A-5005',
+    queueNumber: '05',
+    doctorName: 'Dr. Vikram Malhotra',
+    waitingTime: '2 mins',
+    priority: 'Normal',
+    status: 'Waiting',
+    addedTime: '10:25 AM',
     entryTimestamp: Date.now() - 5 * 60 * 1000
+  },
+  {
+    id: 'Q-006',
+    patientId: 'P-1008',
+    patientName: 'Kavita Menon',
+    appointmentId: 'A-5006',
+    queueNumber: '06',
+    doctorName: 'Dr. Michael Roberts',
+    waitingTime: 'Just Now',
+    priority: 'Emergency',
+    status: 'Waiting',
+    addedTime: '10:30 AM',
+    entryTimestamp: Date.now() - 1 * 60 * 1000
   }
 ];
 
@@ -43,8 +95,15 @@ const getInitialQueue = (): ExtendedQueueItem[] => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        const existingIds = new Set(parsed.map((q: ExtendedQueueItem) => q.id));
+        const merged = [...parsed];
+        defaultQueue.forEach(dq => {
+          if (!existingIds.has(dq.id)) {
+            merged.push(dq);
+          }
+        });
         // Enforce FIFO order by entry timestamp
-        return parsed.sort((a, b) => (a.entryTimestamp || 0) - (b.entryTimestamp || 0));
+        return merged.sort((a, b) => (a.entryTimestamp || 0) - (b.entryTimestamp || 0));
       }
     }
   } catch (e) {

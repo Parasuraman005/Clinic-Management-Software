@@ -45,7 +45,16 @@ const getInitialAppointments = (): Appointment[] => {
     const saved = localStorage.getItem(APPOINTMENTS_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const existingIds = new Set(parsed.map((a: Appointment) => a.id));
+        const merged = [...parsed];
+        mockAppointments.forEach(ma => {
+          if (!existingIds.has(ma.id)) {
+            merged.push(ma);
+          }
+        });
+        return merged;
+      }
     }
   } catch (e) {
     console.error('Failed to load appointments', e);

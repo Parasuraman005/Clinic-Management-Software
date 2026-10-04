@@ -100,7 +100,7 @@ const Patients: React.FC<PatientsProps> = ({ setActiveTab }) => {
   });
 
   if (view === 'add') {
-    return <AddPatient onBack={() => setView('list')} />;
+    return <AddPatient onBack={() => setView('list')} setActiveTab={setActiveTab} />;
   }
 
   if (view === 'profile' && selectedPatient) {
