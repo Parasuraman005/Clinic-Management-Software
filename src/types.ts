@@ -64,6 +64,10 @@ export interface UserAccount {
   qualification?: string;
   registrationNumber?: string;
   avatar?: string;
+  photoUrl?: string;
+  age?: number;
+  bloodGroup?: string;
+  address?: string;
   twoFactorEnabled?: boolean;
   accessLevel?: string;
   joinedDate?: string;

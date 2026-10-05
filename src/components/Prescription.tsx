@@ -681,10 +681,10 @@ const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
       {/* ========================================================================= */}
       {activeView === 'prescription' && (
         <div className="space-y-3 animate-in fade-in duration-200">
-          {/* A. CONSOLIDATED CLINICAL HEADER ROW (Patient, Doctor, Diagnosis in 3 Columns) */}
+          {/* A. CONSOLIDATED CLINICAL HEADER ROW (Patient & Doctor in 2 Balanced Columns) */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-            {/* Column 1: Patient Information (Cols 1-4) */}
-            <div className="md:col-span-4 bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-2xs space-y-2">
+            {/* Column 1: Patient Information (Cols 1-6) */}
+            <div className="md:col-span-6 bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
                   <User size={14} className="text-medical-primary" />
@@ -703,14 +703,14 @@ const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                   <input
                     type="text"
-                    placeholder="Select Patient (Name / ID)..."
+                    placeholder="Search / Select Patient (Name, ID, Phone)..."
                     value={patientSearchQuery || (selectedPatient ? `${selectedPatient.name}` : '')}
                     onChange={(e) => {
                       setPatientSearchQuery(e.target.value);
                       setIsPatientDropdownOpen(true);
                     }}
                     onFocus={() => setIsPatientDropdownOpen(true)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-7 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-medical-primary/20"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-7 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-medical-primary/20"
                   />
                   {selectedPatient && (
                     <button
@@ -733,7 +733,7 @@ const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
                         key={p.id}
                         type="button"
                         onClick={() => handleSelectPatient(p)}
-                        className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center justify-between text-xs font-bold text-slate-800"
+                        className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center justify-between text-xs font-bold text-slate-800 cursor-pointer"
                       >
                         <div>
                           <span>{p.name}</span>
@@ -747,28 +747,28 @@ const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
               </div>
 
               {/* Patient Quick Info Pills */}
-              <div className="grid grid-cols-3 gap-1.5 text-[11px] pt-0.5">
-                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 truncate">
-                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Age/Sex</span>
-                  <span className="font-bold text-slate-800">{selectedPatient ? `${selectedPatient.age}Y / ${selectedPatient.gender.charAt(0)}` : '--'}</span>
+              <div className="grid grid-cols-3 gap-2 text-[11px] pt-0.5">
+                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 truncate">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Age / Gender</span>
+                  <span className="font-bold text-slate-800">{selectedPatient ? `${selectedPatient.age}Y / ${selectedPatient.gender}` : '--'}</span>
                 </div>
-                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 truncate">
-                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Phone</span>
-                  <span className="font-bold text-slate-800 tabular-nums">{selectedPatient?.phone.slice(-6) ? `..${selectedPatient.phone.slice(-6)}` : '--'}</span>
+                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 truncate">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Phone (+91)</span>
+                  <span className="font-bold text-slate-800 tabular-nums">{selectedPatient?.phone || '--'}</span>
                 </div>
-                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100 truncate">
-                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Blood</span>
+                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 truncate">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Blood Group</span>
                   <span className="font-bold text-indigo-700">{selectedPatient?.bloodGroup || 'O+'}</span>
                 </div>
               </div>
             </div>
 
-            {/* Column 2: Consulting Doctor (Cols 5-8) */}
-            <div className="md:col-span-4 bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-2xs space-y-2">
+            {/* Column 2: Consulting Doctor & Date (Cols 7-12) */}
+            <div className="md:col-span-6 bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
                   <Stethoscope size={14} className="text-indigo-600" />
-                  <span>Consulting Doctor</span>
+                  <span>Consulting Doctor & Issue Date</span>
                 </div>
                 <span className="text-[10px] text-slate-400 font-mono font-bold">
                   {selectedDoctor?.registrationNumber || 'MCI-98442-KA'}
@@ -783,7 +783,7 @@ const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
                     setSelectedDoctor(doc);
                     if (doc) setGlobalActiveDoctor(doc);
                   }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-medical-primary/20 appearance-none pr-7"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-medical-primary/20 appearance-none pr-7 cursor-pointer"
                 >
                   {doctors.map((d: Doctor) => (
                     <option key={d.id} value={d.id}>
@@ -794,13 +794,13 @@ const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5 text-[11px] pt-0.5">
-                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Medical Reg No</span>
+              <div className="grid grid-cols-2 gap-2 text-[11px] pt-0.5">
+                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Medical License #</span>
                   <span className="font-mono font-bold text-slate-800 text-[11px]">{selectedDoctor?.registrationNumber || 'MCI-98442-KA'}</span>
                 </div>
-                <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Issue Date</span>
+                <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                  <span className="text-slate-400 block text-[9px] uppercase font-bold">Prescription Issue Date</span>
                   <input
                     type="text"
                     value={prescriptionDate}
@@ -808,43 +808,6 @@ const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
                     className="w-full bg-transparent font-bold text-slate-800 text-[11px] focus:outline-none"
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Column 3: Clinical Findings & Diagnosis (Cols 9-12) */}
-            <div className="md:col-span-4 bg-white rounded-2xl border border-slate-200/90 p-3.5 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
-                  <FileText size={14} className="text-blue-600" />
-                  <span>Diagnosis & Vitals</span>
-                </div>
-              </div>
-
-              <div>
-                <input
-                  type="text"
-                  value={diagnosis}
-                  onChange={(e) => setDiagnosis(e.target.value)}
-                  placeholder="Final Diagnosis * (e.g. Acute Pharyngitis)..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-medical-primary/20"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-1.5">
-                <input
-                  type="text"
-                  value={chiefComplaint}
-                  onChange={(e) => setChiefComplaint(e.target.value)}
-                  placeholder="Chief Complaint..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800"
-                />
-                <input
-                  type="text"
-                  value={clinicalNotes}
-                  onChange={(e) => setClinicalNotes(e.target.value)}
-                  placeholder="Vitals (BP/Pulse)..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-800"
-                />
               </div>
             </div>
           </div>
@@ -1445,14 +1408,6 @@ const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
             <span className="text-[9px] uppercase text-slate-500 font-bold block">Patient ID</span>
             <span className="font-mono font-bold text-indigo-700 text-xs block">{selectedPatient?.id || 'P-NEW'}</span>
           </div>
-        </div>
-
-        {/* DIAGNOSIS */}
-        <div className="text-xs font-sans pb-1.5 border-b border-slate-200 flex items-center gap-2">
-          <span className="font-bold text-slate-700">Diagnosis:</span>
-          <span className="font-semibold text-slate-900 underline decoration-slate-300">
-            {diagnosis || 'General Clinical Evaluation'}
-          </span>
         </div>
 
         {/* MEDICINE TABLE */}

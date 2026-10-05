@@ -583,11 +583,11 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                       <X size={14} />
                     </button>
                   </div>
-                ) : (
-                  /* Quick Patient Selector Chips from Directory */
+                ) : searchTerm.trim() ? (
+                  /* Matching Patient Selector Chips from Directory when searching */
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      {searchTerm ? 'Matching Registered Patients:' : 'Recent Registered Patients:'}
+                      Matching Registered Patients:
                     </p>
                     <div className="space-y-1.5 max-h-36 overflow-y-auto">
                       {filteredPatients.map(p => (
@@ -635,7 +635,7 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                       )}
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {/* Validation Error Banner if user tries to submit unregistered name */}
                 {validationError && (

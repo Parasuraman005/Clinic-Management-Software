@@ -16,7 +16,10 @@ import {
   CalendarDays,
   FileText,
   X,
-  RotateCcw
+  RotateCcw,
+  User,
+  Stethoscope,
+  Phone
 } from 'lucide-react';
 import { mockAppointments } from '../mockData';
 import { Appointment } from '../types';
@@ -88,11 +91,21 @@ const Appointments: React.FC<AppointmentsProps> = ({ setActiveTab }) => {
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
 
-  // Booking Form State
+  // Booking Form State - with searchable Patient & Doctor inputs
+  const [bookingPatientQuery, setBookingPatientQuery] = useState('');
+  const [showBookingPatientDropdown, setShowBookingPatientDropdown] = useState(false);
+  const [selectedBookingPatient, setSelectedBookingPatient] = useState<any>(null);
+  const bookingPatientRef = useRef<HTMLDivElement>(null);
+
+  const [bookingDoctorQuery, setBookingDoctorQuery] = useState('');
+  const [showBookingDoctorDropdown, setShowBookingDoctorDropdown] = useState(false);
+  const [selectedBookingDoctor, setSelectedBookingDoctor] = useState<any>(null);
+  const bookingDoctorRef = useRef<HTMLDivElement>(null);
+
   const [newBooking, setNewBooking] = useState({
     patientId: '',
     doctorId: '',
-    date: '2023-10-01',
+    date: new Date().toISOString().split('T')[0],
     time: '10:00 AM',
     type: 'New Consultation' as Appointment['type'],
     priority: 'Normal' as Appointment['priority'],
@@ -114,6 +127,12 @@ const Appointments: React.FC<AppointmentsProps> = ({ setActiveTab }) => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
+      }
+      if (bookingPatientRef.current && !bookingPatientRef.current.contains(event.target as Node)) {
+        setShowBookingPatientDropdown(false);
+      }
+      if (bookingDoctorRef.current && !bookingDoctorRef.current.contains(event.target as Node)) {
+        setShowBookingDoctorDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -1213,149 +1232,334 @@ const Appointments: React.FC<AppointmentsProps> = ({ setActiveTab }) => {
         )}
       </AnimatePresence>
 
-      {/* BOOK APPOINTMENT MODAL */}
+      {/* BOOK APPOINTMENT MODAL - SPACIOUS REDESIGNED FORM */}
       <AnimatePresence>
         {showAddForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-200 my-auto"
             >
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon size={18} className="text-medical-primary" />
-                  <h3 className="text-sm font-bold text-slate-900">Book New Patient Consultation</h3>
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-medical-primary/10 text-medical-primary flex items-center justify-center font-bold">
+                    <CalendarIcon size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Schedule Patient Consultation</h3>
+                    <p className="text-xs text-slate-500 font-sans">Book a new OPD or follow-up slot with registered doctors</p>
+                  </div>
                 </div>
-                <button onClick={() => setShowAddForm(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-full">
-                  <X size={16} />
+                <button 
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setBookingPatientQuery('');
+                    setBookingDoctorQuery('');
+                    setSelectedBookingPatient(null);
+                    setSelectedBookingDoctor(null);
+                  }} 
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+                >
+                  <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={(e) => handleCreateAppointment(e, false)} className="p-5 space-y-3.5 text-xs">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Select Patient *</label>
-                  <select 
-                    required
-                    value={newBooking.patientId}
-                    onChange={(e) => setNewBooking({ ...newBooking, patientId: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-medium cursor-pointer"
-                  >
-                    <option value="">-- Choose Registered Patient --</option>
-                    {patients.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.id}) — {p.phone}</option>
-                    ))}
-                  </select>
+              <form onSubmit={(e) => handleCreateAppointment(e, false)} className="p-6 space-y-5 text-xs font-sans">
+                {/* 2-Column Main Fields Layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Field 1: Searchable Patient Name Input */}
+                  <div className="space-y-1.5 relative" ref={bookingPatientRef}>
+                    <label className="font-bold text-slate-700 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <User size={14} className="text-medical-primary" />
+                        <span>Patient Name *</span>
+                      </span>
+                      {selectedBookingPatient && (
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                          Selected ID: {selectedBookingPatient.id}
+                        </span>
+                      )}
+                    </label>
+
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                      <input 
+                        type="text"
+                        required
+                        value={bookingPatientQuery}
+                        onChange={(e) => {
+                          setBookingPatientQuery(e.target.value);
+                          setShowBookingPatientDropdown(true);
+                          const matched = patients.find(p => p.name.toLowerCase() === e.target.value.toLowerCase());
+                          if (matched) {
+                            setSelectedBookingPatient(matched);
+                            setNewBooking({ ...newBooking, patientId: matched.id });
+                          }
+                        }}
+                        onFocus={() => setShowBookingPatientDropdown(true)}
+                        placeholder="Type patient name, ID or mobile..."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-8 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
+                      />
+                      {bookingPatientQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBookingPatientQuery('');
+                            setSelectedBookingPatient(null);
+                            setNewBooking({ ...newBooking, patientId: '' });
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Patient Suggestions Dropdown */}
+                    {showBookingPatientDropdown && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-2xl shadow-xl border border-slate-200 max-h-48 overflow-y-auto divide-y divide-slate-100 p-1">
+                        {patients
+                          .filter(p => 
+                            !bookingPatientQuery ||
+                            p.name.toLowerCase().includes(bookingPatientQuery.toLowerCase()) ||
+                            p.id.toLowerCase().includes(bookingPatientQuery.toLowerCase()) ||
+                            p.phone.includes(bookingPatientQuery)
+                          )
+                          .slice(0, 6)
+                          .map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedBookingPatient(p);
+                                setNewBooking({ ...newBooking, patientId: p.id });
+                                setBookingPatientQuery(p.name);
+                                setShowBookingPatientDropdown(false);
+                              }}
+                              className={`w-full p-2 text-left rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors ${
+                                selectedBookingPatient?.id === p.id ? 'bg-medical-primary/10 font-bold text-medical-primary' : 'text-slate-800'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-medical-primary/10 text-medical-primary flex items-center justify-center font-bold text-xs shrink-0">
+                                  {p.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-xs text-slate-900">{p.name}</p>
+                                  <p className="text-[10px] text-slate-400 font-mono">ID: {p.id} • {p.age}Y/{p.gender} • {p.phone}</p>
+                                </div>
+                              </div>
+                              <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-md font-semibold text-slate-600">Select</span>
+                            </button>
+                          ))}
+                        {patients.filter(p => !bookingPatientQuery || p.name.toLowerCase().includes(bookingPatientQuery.toLowerCase())).length === 0 && (
+                          <div className="p-3 text-center text-slate-400 text-xs">
+                            No registered patient found matching "{bookingPatientQuery}".
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Field 2: Searchable Doctor Name Input */}
+                  <div className="space-y-1.5 relative" ref={bookingDoctorRef}>
+                    <label className="font-bold text-slate-700 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Stethoscope size={14} className="text-indigo-600" />
+                        <span>Consulting Doctor *</span>
+                      </span>
+                      {selectedBookingDoctor && (
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                          Fee: ₹{selectedBookingDoctor.consultationFee}
+                        </span>
+                      )}
+                    </label>
+
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                      <input 
+                        type="text"
+                        required
+                        value={bookingDoctorQuery}
+                        onChange={(e) => {
+                          setBookingDoctorQuery(e.target.value);
+                          setShowBookingDoctorDropdown(true);
+                          const matched = doctors.find(d => d.name.toLowerCase() === e.target.value.toLowerCase());
+                          if (matched) {
+                            setSelectedBookingDoctor(matched);
+                            setNewBooking({ ...newBooking, doctorId: matched.id });
+                          }
+                        }}
+                        onFocus={() => setShowBookingDoctorDropdown(true)}
+                        placeholder="Type doctor name or specialty..."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-8 text-xs font-semibold text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
+                      />
+                      {bookingDoctorQuery && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBookingDoctorQuery('');
+                            setSelectedBookingDoctor(null);
+                            setNewBooking({ ...newBooking, doctorId: '' });
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Doctor Suggestions Dropdown */}
+                    {showBookingDoctorDropdown && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white rounded-2xl shadow-xl border border-slate-200 max-h-48 overflow-y-auto divide-y divide-slate-100 p-1">
+                        {doctors
+                          .filter(d => 
+                            !bookingDoctorQuery ||
+                            d.name.toLowerCase().includes(bookingDoctorQuery.toLowerCase()) ||
+                            d.specialization.toLowerCase().includes(bookingDoctorQuery.toLowerCase())
+                          )
+                          .map((d) => (
+                            <button
+                              key={d.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedBookingDoctor(d);
+                                setNewBooking({ ...newBooking, doctorId: d.id });
+                                setBookingDoctorQuery(d.name);
+                                setShowBookingDoctorDropdown(false);
+                              }}
+                              className={`w-full p-2 text-left rounded-xl hover:bg-slate-50 flex items-center justify-between transition-colors ${
+                                selectedBookingDoctor?.id === d.id ? 'bg-indigo-50 font-bold text-indigo-700' : 'text-slate-800'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs shrink-0">
+                                  Dr
+                                </div>
+                                <div>
+                                  <p className="font-bold text-xs text-slate-900">{d.name}</p>
+                                  <p className="text-[10px] text-slate-400">{d.specialization} • Fee: ₹{d.consultationFee}</p>
+                                </div>
+                              </div>
+                              <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-md font-semibold text-slate-600">Select</span>
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Assign Consulting Doctor *</label>
-                  <select 
-                    required
-                    value={newBooking.doctorId}
-                    onChange={(e) => setNewBooking({ ...newBooking, doctorId: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-medium cursor-pointer"
-                  >
-                    <option value="">-- Choose Consulting Doctor --</option>
-                    {doctors.map(d => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.specialization}) - Fee: ₹{d.consultationFee} INR</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Date *</label>
+                {/* Date & Time Slot Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-slate-700">Appointment Date *</label>
                     <input 
                       type="date"
                       required
                       value={newBooking.date}
                       onChange={(e) => setNewBooking({ ...newBooking, date: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20"
                     />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <label className="font-bold text-slate-700">Time Slot *</label>
                     <select 
                       value={newBooking.time}
                       onChange={(e) => setNewBooking({ ...newBooking, time: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-medium"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 cursor-pointer"
                     >
-                      <option value="09:00 AM">09:00 AM</option>
-                      <option value="09:30 AM">09:30 AM</option>
-                      <option value="10:00 AM">10:00 AM</option>
-                      <option value="10:30 AM">10:30 AM</option>
-                      <option value="11:00 AM">11:00 AM</option>
-                      <option value="11:30 AM">11:30 AM</option>
-                      <option value="02:00 PM">02:00 PM</option>
-                      <option value="02:30 PM">02:30 PM</option>
-                      <option value="03:00 PM">03:00 PM</option>
-                      <option value="04:00 PM">04:00 PM</option>
+                      <option value="09:00 AM">09:00 AM - Morning Slot</option>
+                      <option value="09:30 AM">09:30 AM - Morning Slot</option>
+                      <option value="10:00 AM">10:00 AM - Morning Slot</option>
+                      <option value="10:30 AM">10:30 AM - Morning Slot</option>
+                      <option value="11:00 AM">11:00 AM - Morning Slot</option>
+                      <option value="11:30 AM">11:30 AM - Morning Slot</option>
+                      <option value="02:00 PM">02:00 PM - Afternoon Slot</option>
+                      <option value="02:30 PM">02:30 PM - Afternoon Slot</option>
+                      <option value="03:00 PM">03:00 PM - Afternoon Slot</option>
+                      <option value="04:00 PM">04:00 PM - Evening Slot</option>
+                      <option value="05:00 PM">05:00 PM - Evening Slot</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Consultation Type</label>
+                {/* Consultation Type & Priority */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-slate-700">Consultation Category</label>
                     <select 
                       value={newBooking.type}
                       onChange={(e) => setNewBooking({ ...newBooking, type: e.target.value as any })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 cursor-pointer"
                     >
                       <option value="New Consultation">New Consultation</option>
-                      <option value="Follow-up">Follow-up</option>
+                      <option value="Follow-up">Follow-up Visit</option>
                       <option value="Emergency">Emergency</option>
                       <option value="Routine Check-up">Routine Check-up</option>
-                      <option value="Procedure">Procedure</option>
-                      <option value="Review">Review</option>
+                      <option value="Procedure">Procedure / Minor Surgery</option>
+                      <option value="Review">Diagnostic Review</option>
                     </select>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <label className="font-bold text-slate-700">Priority Level</label>
-                    <select 
-                      value={newBooking.priority}
-                      onChange={(e) => setNewBooking({ ...newBooking, priority: e.target.value as any })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
-                    >
-                      <option value="Normal">Normal</option>
-                      <option value="Urgent">Urgent</option>
-                      <option value="Emergency">Emergency</option>
-                    </select>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'Normal', bg: 'bg-emerald-50 border-emerald-300 text-emerald-800' },
+                        { id: 'Urgent', bg: 'bg-amber-50 border-amber-300 text-amber-800' },
+                        { id: 'Emergency', bg: 'bg-rose-50 border-rose-300 text-rose-800' }
+                      ].map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setNewBooking({ ...newBooking, priority: p.id as any })}
+                          className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            newBooking.priority === p.id 
+                              ? `${p.bg} ring-2 ring-medical-primary shadow-2xs font-extrabold` 
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          {p.id}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Scheduling Notes (Optional)</label>
+                {/* Notes & Clinical Reason */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Scheduling Notes & Clinical Reason (Optional)</label>
                   <textarea 
                     rows={2}
                     value={newBooking.notes}
                     onChange={(e) => setNewBooking({ ...newBooking, notes: e.target.value })}
-                    placeholder="Chief complaints, symptoms or special requests..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs"
+                    placeholder="Chief complaints, specific patient requests, or referral notes..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20"
                   />
                 </div>
 
-                <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-end gap-2">
+                {/* Modal Footer Actions */}
+                <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-end gap-2.5">
                   <button 
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="w-full sm:w-auto px-4 py-2 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50"
+                    className="w-full sm:w-auto px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button 
                     type="button"
                     onClick={(e) => handleCreateAppointment(e, true)}
-                    className="w-full sm:w-auto px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold shadow-xs flex items-center justify-center gap-1.5"
+                    className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    <Clock size={13} />
-                    <span>Book & Add to Queue</span>
+                    <Clock size={14} />
+                    <span>Book & Add to Live Queue</span>
                   </button>
                   <button 
                     type="submit"
-                    className="w-full sm:w-auto px-5 py-2 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-lg text-xs font-bold shadow-xs"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-xl text-xs font-bold shadow-md shadow-medical-primary/20 transition-all cursor-pointer"
                   >
                     Confirm Booking
                   </button>

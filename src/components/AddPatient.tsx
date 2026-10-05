@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   ArrowLeft, Save, CheckCircle2, 
   ListOrdered, Phone, User, Calendar, MapPin, 
-  Stethoscope, Clock, ArrowRight
+  Stethoscope, Clock, ArrowRight, Droplets, Mail, UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSharedPatients } from '../hooks/useSharedPatients';
@@ -21,24 +21,22 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
   const { addPatient } = useSharedPatients();
   const { doctors } = useSharedDoctors();
 
-  // Form State - with sensible defaults
+  // Form State
   const [formData, setFormData] = useState({
     fullName: '',
     age: '',
-    gender: 'Male' as 'Male' | 'Female' | 'Other' | '',
+    gender: 'Male' as 'Male' | 'Female' | 'Other',
     phoneNumber: '',
     email: '',
     address: '',
-    bloodGroup: '',
-    allergies: '',
+    bloodGroup: 'O+',
     // Attendant (optional)
     attendantName: '',
     attendantPhone: '',
-    attendantRelationship: '',
+    attendantRelationship: 'Spouse',
     // Queue Assignment (optional)
     assignedDoctor: 'Dr. Sarah Chen',
-    triagePriority: 'Normal' as 'Normal' | 'Urgent' | 'Emergency',
-    chiefComplaint: ''
+    triagePriority: 'Normal' as 'Normal' | 'Urgent' | 'Emergency'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,7 +52,11 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
     }
 
     if (formData.age.trim() && (isNaN(Number(formData.age)) || Number(formData.age) <= 0 || Number(formData.age) > 130)) {
-      errs.age = 'Please enter a valid age (1-130)';
+      errs.age = 'Enter valid age (1-130)';
+    }
+
+    if (formData.email.trim() && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email.trim())) {
+      errs.email = 'Enter a valid email address';
     }
 
     setErrors(errs);
@@ -71,14 +73,14 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
       const createdPatient = addPatient({
         name: formData.fullName.trim(),
         age: formData.age.trim() ? Number(formData.age) : 30,
-        gender: (formData.gender || 'Male') as 'Male' | 'Female' | 'Other',
+        gender: formData.gender,
         phone: formData.phoneNumber.trim() || '+91 98765-00000',
+        email: formData.email.trim(),
         address: formData.address.trim() || 'Bangalore, Karnataka',
-        bloodGroup: formData.bloodGroup || undefined,
+        bloodGroup: formData.bloodGroup || 'O+',
         attendantName: formData.attendantName.trim() || undefined,
         attendantPhone: formData.attendantPhone.trim() || undefined,
-        attendantRelationship: formData.attendantRelationship.trim() || undefined,
-        allergies: formData.allergies.trim() ? [formData.allergies.trim()] : undefined
+        attendantRelationship: formData.attendantRelationship.trim() || undefined
       });
 
       let tokenNumber: string | undefined = undefined;
@@ -108,7 +110,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
         } else {
           onBack();
         }
-      }, 1200);
+      }, 1000);
     } catch (err) {
       console.error('Failed to register patient', err);
       setIsSubmitting(false);
@@ -116,39 +118,39 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
   };
 
   return (
-    <div className="animate-in fade-in duration-300 font-serif pb-12 w-full max-w-5xl mx-auto space-y-6">
-      {/* Top Header & Breadcrumbs Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
+    <div className="animate-in fade-in duration-200 font-serif w-full max-w-5xl mx-auto space-y-3 pb-4">
+      {/* Top Header Bar */}
+      <div className="flex items-center justify-between gap-3 bg-white px-4 py-3 rounded-2xl border border-slate-200 shadow-2xs">
         <div className="flex items-center gap-3">
           <button 
             type="button"
             onClick={onBack}
-            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
             title="Return to Patient Directory"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg md:text-xl font-bold text-slate-900 leading-tight">
+              <h1 className="text-base font-bold text-slate-900 leading-tight">
                 New Patient Registration
               </h1>
-              <span className="px-2 py-0.5 rounded-full bg-medical-primary/10 text-medical-primary text-[10px] font-bold uppercase tracking-wider">
-                NABH EHR
+              <span className="px-2 py-0.5 rounded-full bg-medical-primary/10 text-medical-primary text-[9px] font-bold uppercase tracking-wider">
+                EHR Record
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-sans mt-0.5">
-              Enter patient details. Only Full Name is strictly mandatory.
+            <p className="text-[11px] text-slate-400 font-sans">
+              Enter patient information. Full Name is required.
             </p>
           </div>
         </div>
 
-        {/* Quick Top Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Action Buttons in Header */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-bold font-sans text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
+            className="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold font-sans text-slate-600 hover:bg-slate-50 transition-all cursor-pointer"
           >
             Cancel
           </button>
@@ -156,19 +158,19 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
             type="button"
             disabled={isSubmitting}
             onClick={() => handleSave(false)}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold font-sans shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold font-sans shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            <Save size={14} />
+            <Save size={13} />
             <span>Save Patient</span>
           </button>
           <button
             type="button"
             disabled={isSubmitting}
             onClick={() => handleSave(true)}
-            className="px-4 py-2 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-xl text-xs font-bold font-sans shadow-md shadow-medical-primary/25 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-4 py-1.5 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-xl text-xs font-bold font-sans shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
-            <ListOrdered size={15} />
-            <span>Save and to Queue</span>
+            <ListOrdered size={14} />
+            <span>Save & to Queue</span>
           </button>
         </div>
       </div>
@@ -177,53 +179,47 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
       <AnimatePresence>
         {successInfo && (
           <motion.div 
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 text-emerald-900 shadow-sm"
+            exit={{ opacity: 0, y: -8 }}
+            className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-emerald-900 shadow-2xs"
           >
-            <div className="flex items-center gap-3">
-              <CheckCircle2 size={24} className="text-emerald-600 shrink-0" />
-              <div>
-                <p className="font-bold text-sm">Patient Registered Successfully!</p>
-                <p className="text-xs text-emerald-700 font-sans">
-                  <strong>{successInfo.name}</strong> registered with ID <span className="font-mono font-bold">{successInfo.id}</span>.
-                  {successInfo.queueToken && (
-                    <span className="ml-1 text-emerald-800 font-bold">
-                      Allocated OPD Token <span className="px-1.5 py-0.5 bg-emerald-200 rounded font-mono">#{successInfo.queueToken}</span> and sent to queue.
-                    </span>
-                  )}
-                </p>
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={20} className="text-emerald-600 shrink-0" />
+              <div className="text-xs font-sans">
+                <span className="font-bold">{successInfo.name}</span> registered successfully (<span className="font-mono font-bold text-emerald-800">{successInfo.id}</span>).
+                {successInfo.queueToken && (
+                  <span className="ml-1 font-bold text-emerald-800">
+                    Allocated Token <span className="px-1.5 py-0.5 bg-emerald-200 rounded font-mono">#{successInfo.queueToken}</span> in OPD Queue.
+                  </span>
+                )}
               </div>
             </div>
-            <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
+            <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Full Page Registration Form Cards */}
-      <div className="space-y-6">
-        {/* Card 1: Primary Demographics */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 md:p-6 space-y-4">
-          <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-            <div className="w-7 h-7 rounded-lg bg-medical-primary/10 text-medical-primary flex items-center justify-center font-bold text-xs">
-              1
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Patient Primary Identification</h2>
-              <p className="text-[11px] text-slate-400 font-sans">Essential demographics and contact details</p>
-            </div>
+      {/* Compact Desktop-Optimized 2-Column Form Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        {/* Left Column: Primary Demographics (7 cols) */}
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-2xs p-4 space-y-3 font-sans text-xs">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+            <User size={15} className="text-medical-primary" />
+            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              1. Patient Demographics & Identification
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 font-sans text-xs">
-            {/* Full Name (Mandatory) */}
-            <div className="space-y-1 sm:col-span-2 lg:col-span-2">
-              <label className="font-bold text-slate-700 flex items-center justify-between">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Full Name */}
+            <div className="sm:col-span-2 space-y-1">
+              <label className="font-bold text-slate-700 flex items-center justify-between text-[11px]">
                 <span>Full Name <span className="text-rose-500">*</span></span>
-                <span className="text-[10px] text-slate-400 font-normal">Legal or Official ID Name</span>
+                <span className="text-[10px] text-slate-400 font-normal">Official Legal Name</span>
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                <User className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                 <input 
                   type="text"
                   required
@@ -232,41 +228,56 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
                     setFormData({ ...formData, fullName: e.target.value });
                     if (errors.fullName) setErrors({ ...errors, fullName: '' });
                   }}
-                  placeholder="e.g. Ramesh Kumar / Ananya Sharma"
-                  className={`w-full bg-slate-50 border rounded-xl py-2.5 pl-9 pr-3 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 transition-all ${
-                    errors.fullName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary/20 focus:border-medical-primary'
+                  placeholder="e.g. Ramesh Kumar"
+                  className={`w-full bg-slate-50 border rounded-xl py-1.5 pl-8 pr-3 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 transition-all ${
+                    errors.fullName ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary'
                   }`}
                 />
               </div>
               {errors.fullName && <p className="text-[10px] text-rose-500 font-bold">{errors.fullName}</p>}
             </div>
 
-            {/* Phone Number (Optional) */}
+            {/* Mobile Number */}
             <div className="space-y-1">
-              <label className="font-bold text-slate-700 flex items-center justify-between">
-                <span>Primary Mobile Number</span>
-                <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
-              </label>
+              <label className="font-bold text-slate-700 text-[11px]">Primary Mobile</label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                 <input 
                   type="tel"
                   value={formData.phoneNumber}
                   onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                   placeholder="+91 98765-43210"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 pl-8 pr-3 text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-medical-primary"
                 />
               </div>
             </div>
 
-            {/* Age (Optional) */}
+            {/* Email Address */}
             <div className="space-y-1">
-              <label className="font-bold text-slate-700 flex items-center justify-between">
-                <span>Age (Years)</span>
-                <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
-              </label>
+              <label className="font-bold text-slate-700 text-[11px]">Email Address</label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input 
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value });
+                    if (errors.email) setErrors({ ...errors, email: '' });
+                  }}
+                  placeholder="patient@gmail.com"
+                  className={`w-full bg-slate-50 border rounded-xl py-1.5 pl-8 pr-3 text-xs focus:bg-white focus:outline-none focus:ring-1 ${
+                    errors.email ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary'
+                  }`}
+                />
+              </div>
+              {errors.email && <p className="text-[10px] text-rose-500 font-bold">{errors.email}</p>}
+            </div>
+
+            {/* Age */}
+            <div className="space-y-1">
+              <label className="font-bold text-slate-700 text-[11px]">Age (Years)</label>
+              <div className="relative">
+                <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                 <input 
                   type="number"
                   min="1"
@@ -277,28 +288,43 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
                     if (errors.age) setErrors({ ...errors, age: '' });
                   }}
                   placeholder="e.g. 34"
-                  className={`w-full bg-slate-50 border rounded-xl py-2.5 pl-9 pr-3 text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 transition-all ${
-                    errors.age ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary/20 focus:border-medical-primary'
+                  className={`w-full bg-slate-50 border rounded-xl py-1.5 pl-8 pr-3 text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 ${
+                    errors.age ? 'border-rose-400 focus:ring-rose-200' : 'border-slate-200 focus:ring-medical-primary'
                   }`}
                 />
               </div>
               {errors.age && <p className="text-[10px] text-rose-500 font-bold">{errors.age}</p>}
             </div>
 
-            {/* Gender Chips (Optional) */}
+            {/* Blood Group */}
             <div className="space-y-1">
-              <label className="font-bold text-slate-700 block">
-                Gender
-              </label>
+              <label className="font-bold text-slate-700 text-[11px]">Blood Group</label>
+              <div className="relative">
+                <Droplets className="absolute left-2.5 top-1/2 -translate-y-1/2 text-rose-500" size={14} />
+                <select
+                  value={formData.bloodGroup}
+                  onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 pl-8 pr-3 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-medical-primary cursor-pointer"
+                >
+                  {BLOOD_GROUPS.map((bg) => (
+                    <option key={bg} value={bg}>{bg}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Gender Selection */}
+            <div className="sm:col-span-2 space-y-1">
+              <label className="font-bold text-slate-700 text-[11px] block">Gender</label>
               <div className="grid grid-cols-3 gap-2">
                 {(['Male', 'Female', 'Other'] as const).map((g) => (
                   <button
                     key={g}
                     type="button"
                     onClick={() => setFormData({ ...formData, gender: g })}
-                    className={`py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                    className={`py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                       formData.gender === g
-                        ? 'bg-medical-primary text-white border-medical-primary shadow-xs'
+                        ? 'bg-medical-primary text-white border-medical-primary shadow-2xs'
                         : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
@@ -308,233 +334,133 @@ const AddPatient: React.FC<AddPatientProps> = ({ onBack, setActiveTab }) => {
               </div>
             </div>
 
-            {/* Blood Group Dropdown (Optional) */}
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700 flex items-center justify-between">
-                <span>Blood Group</span>
-                <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
-              </label>
-              <select
-                value={formData.bloodGroup}
-                onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-bold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all cursor-pointer"
-              >
-                <option value="">Select Blood Group...</option>
-                {BLOOD_GROUPS.map((bg) => (
-                  <option key={bg} value={bg}>{bg}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Address (Optional) */}
-            <div className="space-y-1 sm:col-span-2 lg:col-span-3">
-              <label className="font-bold text-slate-700 flex items-center justify-between">
-                <span>Residential Address & Location</span>
-                <span className="text-[10px] text-slate-400 font-normal">(Optional)</span>
-              </label>
+            {/* Residential Address */}
+            <div className="sm:col-span-2 space-y-1">
+              <label className="font-bold text-slate-700 text-[11px]">Residential Address</label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-3 text-slate-400" size={15} />
+                <MapPin className="absolute left-2.5 top-2 text-slate-400" size={14} />
                 <textarea 
                   rows={2}
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="House/Apartment, Street, Area, City, Pincode"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
+                  placeholder="House/Apartment, Street, Area, Bangalore, Karnataka"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 pl-8 pr-3 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-medical-primary"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Card 2: OPD Doctor Queue & Triage Assignment */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 md:p-6 space-y-4 font-sans">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                2
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Doctor Assignment & OPD Queue</h2>
-                <p className="text-[11px] text-slate-400">Select doctor and priority for immediate queue allocation</p>
+        {/* Right Column: OPD Queue Assignment + Attendant Details (5 cols) */}
+        <div className="lg:col-span-5 space-y-3 font-sans text-xs">
+          {/* Card 2: Doctor Assignment & OPD Queue */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-4 space-y-2.5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <div className="flex items-center gap-1.5">
+                <Stethoscope size={15} className="text-indigo-600" />
+                <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  2. OPD Queue & Doctor Assignment
+                </h2>
               </div>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Live Token Generation
-            </span>
+
+            <div className="space-y-2">
+              {/* Consulting Doctor */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 text-[11px]">Consulting Doctor</label>
+                <select
+                  value={formData.assignedDoctor}
+                  onChange={(e) => setFormData({ ...formData, assignedDoctor: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs font-bold text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-medical-primary cursor-pointer"
+                >
+                  {doctors.map((doc) => (
+                    <option key={doc.id} value={doc.name}>
+                      {doc.name} ({doc.specialization})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Triage Priority */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 text-[11px] flex items-center gap-1">
+                  <Clock size={12} className="text-amber-500" />
+                  <span>Triage Priority</span>
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: 'Normal', bg: 'bg-emerald-50 border-emerald-300 text-emerald-800' },
+                    { id: 'Urgent', bg: 'bg-amber-50 border-amber-300 text-amber-800' },
+                    { id: 'Emergency', bg: 'bg-rose-50 border-rose-300 text-rose-800' }
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, triagePriority: p.id as any })}
+                      className={`py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        formData.triagePriority === p.id 
+                          ? `${p.bg} ring-2 ring-medical-primary shadow-2xs font-extrabold` 
+                          : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      {p.id}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            {/* Assign Doctor */}
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700 flex items-center gap-1.5">
-                <Stethoscope size={14} className="text-medical-primary" />
-                <span>Consulting Physician</span>
-              </label>
-              <select
-                value={formData.assignedDoctor}
-                onChange={(e) => setFormData({ ...formData, assignedDoctor: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 cursor-pointer"
-              >
-                {doctors.map((doc) => (
-                  <option key={doc.id} value={doc.name}>
-                    {doc.name} ({doc.specialization})
-                  </option>
-                ))}
-              </select>
+          {/* Card 3: Attendant / Emergency Contact (Optional) */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs p-4 space-y-2.5">
+            <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2">
+              <UserCheck size={15} className="text-emerald-600" />
+              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                3. Attendant & Emergency Contact
+              </h2>
             </div>
 
-            {/* Triage Priority */}
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700 flex items-center gap-1.5">
-                <Clock size={14} className="text-amber-500" />
-                <span>Triage Priority</span>
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'Normal', bg: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
-                  { id: 'Urgent', bg: 'bg-amber-50 border-amber-200 text-amber-800' },
-                  { id: 'Emergency', bg: 'bg-rose-50 border-rose-200 text-rose-800' }
-                ].map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, triagePriority: p.id as any })}
-                    className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                      formData.triagePriority === p.id 
-                        ? `${p.bg} ring-2 ring-medical-primary shadow-2xs font-extrabold` 
-                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                    }`}
+            <div className="space-y-2">
+              {/* Attendant Name */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 text-[11px]">Attendant Name (Optional)</label>
+                <input 
+                  type="text"
+                  value={formData.attendantName}
+                  onChange={(e) => setFormData({ ...formData, attendantName: e.target.value })}
+                  placeholder="e.g. Priya Sharma"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-medical-primary"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* Attendant Phone */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 text-[11px]">Attendant Phone</label>
+                  <input 
+                    type="tel"
+                    value={formData.attendantPhone}
+                    onChange={(e) => setFormData({ ...formData, attendantPhone: e.target.value })}
+                    placeholder="+91 99887-11223"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-medical-primary"
+                  />
+                </div>
+
+                {/* Relationship Dropdown */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 text-[11px]">Relationship</label>
+                  <select
+                    value={formData.attendantRelationship}
+                    onChange={(e) => setFormData({ ...formData, attendantRelationship: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-2.5 text-xs font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-1 focus:ring-medical-primary cursor-pointer"
                   >
-                    {p.id}
-                  </button>
-                ))}
+                    {RELATIONSHIPS.map((rel) => (
+                      <option key={rel} value={rel}>{rel}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Card 3: Attendant & Emergency Contact Details (Optional) */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 md:p-6 space-y-4">
-          <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
-              3
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Attendant & Emergency Contact</h2>
-              <p className="text-[11px] text-slate-400 font-sans">Companion or guardian information (All optional)</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans text-xs">
-            {/* Attendant Name */}
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">Attendant Name</label>
-              <input 
-                type="text"
-                value={formData.attendantName}
-                onChange={(e) => setFormData({ ...formData, attendantName: e.target.value })}
-                placeholder="e.g. Priya Sharma"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
-              />
-            </div>
-
-            {/* Attendant Phone */}
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">Attendant Mobile</label>
-              <input 
-                type="tel"
-                value={formData.attendantPhone}
-                onChange={(e) => setFormData({ ...formData, attendantPhone: e.target.value })}
-                placeholder="+91 99887-11223"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-mono focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
-              />
-            </div>
-
-            {/* Relationship Dropdown */}
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">Relationship</label>
-              <select
-                value={formData.attendantRelationship}
-                onChange={(e) => setFormData({ ...formData, attendantRelationship: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs font-semibold text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all cursor-pointer"
-              >
-                <option value="">Select Relationship...</option>
-                {RELATIONSHIPS.map((rel) => (
-                  <option key={rel} value={rel}>{rel}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Clinical Allergies & Chief Complaint (Optional) */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 md:p-6 space-y-4">
-          <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs">
-              4
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Clinical Safety & Symptoms</h2>
-              <p className="text-[11px] text-slate-400 font-sans">Drug allergies and preliminary clinical complaints (Optional)</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-sans text-xs">
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">Known Drug Allergies</label>
-              <input 
-                type="text"
-                value={formData.allergies}
-                onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                placeholder="e.g. Penicillin, NSAIDs, Sulfa (or None)"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-bold text-slate-700">Chief Clinical Complaint / Symptoms</label>
-              <input 
-                type="text"
-                value={formData.chiefComplaint}
-                onChange={(e) => setFormData({ ...formData, chiefComplaint: e.target.value })}
-                placeholder="e.g. Acute fever, headache x 3 days"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Actions Bar */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="w-full sm:w-auto px-5 py-2.5 border border-slate-200 rounded-xl text-xs font-bold font-sans text-slate-600 hover:bg-slate-50 transition-all cursor-pointer text-center"
-          >
-            Cancel & Return
-          </button>
-
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSave(false)}
-              className="flex-1 sm:flex-initial px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold font-sans shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <Save size={15} />
-              <span>Save Patient</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSave(true)}
-              className="flex-1 sm:flex-initial px-6 py-2.5 bg-medical-primary hover:bg-medical-primary/90 text-white rounded-xl text-xs font-bold font-sans shadow-md shadow-medical-primary/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              <ListOrdered size={16} />
-              <span>Save and to Queue</span>
-              <ArrowRight size={14} />
-            </button>
           </div>
         </div>
       </div>

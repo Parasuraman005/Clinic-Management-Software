@@ -58,6 +58,7 @@ export const addDoctorRecord = (data: {
   status: 'Active' | 'Away';
   experience?: string;
   image?: string;
+  appointmentDuration?: number;
 }): Doctor => {
   const nextIdNum = currentDoctors.length > 0
     ? Math.max(...currentDoctors.map(d => {
@@ -81,7 +82,7 @@ export const addDoctorRecord = (data: {
     consultationFee: Number(data.consultationFee) || 500,
     workingDays: data.workingDays,
     workingHours: data.workingHours.trim() || '09:00 AM - 05:00 PM',
-    appointmentDuration: 20
+    appointmentDuration: data.appointmentDuration || 20
   };
 
   currentDoctors = [newDoctor, ...currentDoctors];
