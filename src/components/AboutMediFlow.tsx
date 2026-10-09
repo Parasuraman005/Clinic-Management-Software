@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Help from './Help';
 import TermsPolicies from './TermsPolicies';
+import mediLogo from '../assets/images/medi-logo.jpg';
 
 interface AboutMediFlowProps {
   onClose?: () => void;
@@ -180,8 +181,8 @@ const AboutMediFlow: React.FC<AboutMediFlowProps> = ({
 
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-medical-primary text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-lg shadow-medical-primary/30">
-                    M
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center p-1 shadow-lg border border-slate-700/50 shrink-0">
+                    <img src={mediLogo} alt="MediFlow Logo" className="w-full h-full object-contain rounded-xl" />
                   </div>
                   <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">About MediFlow Pro</h1>
@@ -308,6 +309,41 @@ const AboutMediFlow: React.FC<AboutMediFlowProps> = ({
                   <p className="text-xs font-sans font-bold text-slate-800 break-words">{spec.value}</p>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Bangalore Clinic & Campus Local Info */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <Building2 size={18} className="text-medical-primary" />
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Hospital Campus & Local Healthcare Clinic</h3>
+                <p className="text-[11px] text-slate-500 font-sans">Primary Outpatient Department (OPD) & Healthcare Center in Bangalore, Karnataka.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans text-xs">
+              <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-100 space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Clinic Address</span>
+                <p className="font-bold text-slate-900">MedFlow Pro Healthcare Center</p>
+                <p className="text-slate-600 leading-relaxed">
+                  #42, 100 Feet Road, HAL 2nd Stage, Indiranagar, Bangalore, Karnataka - 560038, India
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-100 space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">OPD & Consultation Hours</span>
+                <p className="font-bold text-slate-900">Mon – Sat: 08:00 AM – 08:00 PM</p>
+                <p className="text-slate-600">Sunday: 09:00 AM – 02:00 PM</p>
+                <p className="text-emerald-700 font-bold mt-1">24/7 Emergency Triage & Admissions</p>
+              </div>
+
+              <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-100 space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Contact & Appointments</span>
+                <p className="font-bold text-slate-900">Telephone: +91 (80) 4567-8900</p>
+                <p className="text-slate-600">Emergency: +91 98765-43210</p>
+                <p className="text-medical-primary font-bold mt-1">Email: care@medflowclinic.com</p>
+              </div>
             </div>
           </div>
 

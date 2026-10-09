@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useSharedQueue, ExtendedQueueItem } from '../hooks/useSharedQueue';
+import { useSharedPayments, hasPatientCompletedPayment } from '../hooks/useSharedPayments';
 import { useSharedDoctors } from '../hooks/useSharedDoctors';
 import { useSharedPatients } from '../hooks/useSharedPatients';
 import { useActivePatientContext } from '../hooks/useActivePatientContext';
@@ -134,8 +135,14 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
   };
 
   const completeQueueItem = (id: string, patientName: string) => {
+    const item = queue.find(q => q.id === id);
+    const isPaid = item ? hasPatientCompletedPayment(item.patientId, item.patientName) : false;
     updateStatus(id, 'Completed');
-    showToast(`Visit completed for ${patientName}`);
+    if (isPaid) {
+      showToast(`Consultation & payment complete — ${patientName} removed from queue.`);
+    } else {
+      showToast(`Consultation completed for ${patientName}. Settle payment in Billing to clear queue.`);
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -353,17 +360,24 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
 
                     {/* Current Status */}
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                        item.status === 'In Consultation' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                        item.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          item.status === 'In Consultation' ? 'bg-purple-500 animate-pulse' :
-                          item.status === 'Completed' ? 'bg-emerald-500' : 'bg-amber-500'
-                        }`} />
-                        {item.status}
-                      </span>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                          item.status === 'In Consultation' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                          item.status === 'Completed' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            item.status === 'In Consultation' ? 'bg-purple-500 animate-pulse' :
+                            item.status === 'Completed' ? 'bg-amber-500' : 'bg-blue-500'
+                          }`} />
+                          {item.status === 'Completed' ? 'Consultation Done' : item.status}
+                        </span>
+                        {item.status === 'Completed' && (
+                          <span className="text-[9px] text-amber-600 font-bold flex items-center gap-0.5">
+                            <Clock size={10} /> Awaiting Payment
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Actions */}
@@ -454,6 +468,19 @@ const Queue: React.FC<QueueProps> = ({ setActiveTab }) => {
                             title="Complete Consultation"
                           >
                             <CheckCircle2 size={11} /> Finish
+                          </button>
+                        ) : item.status === 'Completed' ? (
+                          <button 
+                            onClick={() => {
+                              const patient = patients.find(p => p.id === item.patientId || p.name === item.patientName);
+                              if (patient) {
+                                navigateWithPatient(patient, 'billing', setActiveTab);
+                              }
+                            }}
+                            className="flex items-center gap-1 px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md font-bold text-xs shadow-xs transition-all cursor-pointer"
+                            title="Consultation completed — Settle payment in Billing to clear queue"
+                          >
+                            <CreditCard size={11} /> Settle Bill
                           </button>
                         ) : null}
 

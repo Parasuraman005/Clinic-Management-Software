@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Users, UserPlus, Search, 
   Mail, Phone, Clock, Key, Eye, Edit, 
@@ -11,6 +11,7 @@ import { mockUsers } from '../mockData';
 import { UserAccount } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatIndianPhone } from '../utils/formatters';
+import { useSharedUsers } from '../hooks/useSharedUsers';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 const ALLOWED_ROLES = ['Staff', 'Administrator', 'Receptionist'] as const;
@@ -25,7 +26,8 @@ const AVATAR_PRESETS = [
 ];
 
 const Staff: React.FC = () => {
-  const [users, setUsers] = useState<UserAccount[]>(mockUsers);
+  const { users, addUser, deleteUser } = useSharedUsers();
+
   const [activeSubTab, setActiveSubTab] = useState<'directory' | 'register' | 'matrix' | 'shifts' | 'audit'>('directory');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   
@@ -141,6 +143,7 @@ const Staff: React.FC = () => {
       id: newId,
       name: regForm.name.trim(),
       username: regForm.username.trim().toLowerCase(),
+      password: regForm.password.trim(),
       role: regForm.role,
       age: Number(regForm.age),
       bloodGroup: regForm.bloodGroup,
@@ -160,7 +163,7 @@ const Staff: React.FC = () => {
       joinedDate: new Date().toLocaleDateString('en-GB')
     };
 
-    setUsers(prev => [newUser, ...prev]);
+    addUser(newUser);
     setIsSubmitting(false);
 
     // Reset Form
@@ -188,7 +191,7 @@ const Staff: React.FC = () => {
     if (!userToDelete) return;
 
     const targetName = userToDelete.name;
-    setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+    deleteUser(userToDelete.id);
     setUserToDelete(null);
     showToast('Personnel Removed', `${targetName} has been permanently deleted from staff records.`, 'warning');
   };
@@ -1099,6 +1102,37 @@ const Staff: React.FC = () => {
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                     <p className="text-[10px] font-bold text-slate-400 uppercase">Duty Shift</p>
                     <p className="font-bold text-slate-900 mt-0.5">{viewingUser.shift || 'General Shift'}</p>
+                  </div>
+                </div>
+
+                {/* Login Credentials & Authentication Dossier */}
+                <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-blue-900 font-bold text-xs">
+                      <Key size={14} className="text-blue-600" />
+                      <span>System Login Credentials (JSON Registry)</span>
+                    </div>
+                    <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded-md">
+                      Authorized Staff
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                    <div>
+                      <span className="text-slate-500 block text-[10px]">Login Username:</span>
+                      <span className="font-mono font-bold text-slate-800">@{viewingUser.username}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px]">Active Password:</span>
+                      <span className="font-mono font-bold text-slate-800">{viewingUser.password || 'password123'}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px]">Employee ID:</span>
+                      <span className="font-mono font-bold text-slate-800">{viewingUser.employeeId || viewingUser.id}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[10px]">Last Session Login:</span>
+                      <span className="font-medium text-slate-700">{viewingUser.lastLogin || 'Never logged in'}</span>
+                    </div>
                   </div>
                 </div>
 

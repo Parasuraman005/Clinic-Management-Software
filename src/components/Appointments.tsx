@@ -28,7 +28,7 @@ import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useSharedPatients } from '../hooks/useSharedPatients';
 import { useSharedDoctors } from '../hooks/useSharedDoctors';
-import { useSharedQueue } from '../hooks/useSharedQueue';
+import { useSharedQueue, checkAndRemoveCompletedPatientFromQueue, markConsultationCompletedForPatient } from '../hooks/useSharedQueue';
 
 interface AppointmentsProps {
   setActiveTab: (tab: string) => void;
@@ -162,6 +162,13 @@ const Appointments: React.FC<AppointmentsProps> = ({ setActiveTab }) => {
   // Update Status handler
   const handleUpdateStatus = (id: string, newStatus: Appointment['status']) => {
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: newStatus } : a));
+    if (newStatus === 'Completed') {
+      const apt = appointments.find(a => a.id === id);
+      if (apt) {
+        markConsultationCompletedForPatient(apt.patientId, apt.patientName);
+        checkAndRemoveCompletedPatientFromQueue(apt.patientId, apt.patientName);
+      }
+    }
     triggerToast(`Appointment ${id} status updated to ${newStatus}`);
   };
 

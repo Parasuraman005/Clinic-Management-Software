@@ -1017,7 +1017,37 @@ const LocalJsonStorageConsole: React.FC<LocalJsonStorageConsoleProps> = ({ onNot
         </div>
 
         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Local Storage Footprint</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Clinical Consultations</span>
+          <p className="text-lg font-bold text-teal-600 tabular-nums">{stats.consultationsCount} Profiles</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_consultations_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Personnel & Staff</span>
+          <p className="text-lg font-bold text-blue-600 tabular-nums">{stats.usersCount} Accounts</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_users_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Drug Catalog</span>
+          <p className="text-lg font-bold text-emerald-600 tabular-nums">{stats.drugsCount} Medicines</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_drug_catalog</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">System Notifications</span>
+          <p className="text-lg font-bold text-amber-600 tabular-nums">{stats.notificationsCount} Alerts</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_notifications_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Support Tickets</span>
+          <p className="text-lg font-bold text-rose-600 tabular-nums">{stats.ticketsCount} Inquiries</p>
+          <span className="text-[9px] text-slate-500 font-mono">key: medflow_tickets_data</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total JSON Footprint</span>
           <p className="text-lg font-bold text-indigo-600 tabular-nums">{stats.totalSizeFormatted}</p>
           <span className="text-[9px] text-slate-500">Updated: {stats.lastUpdated}</span>
         </div>

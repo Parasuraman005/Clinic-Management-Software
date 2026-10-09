@@ -2,9 +2,9 @@ import React from 'react';
 import { 
   LayoutDashboard, Users, Calendar, ListOrdered, UserRound, 
   ClipboardList, CreditCard, Receipt, BarChart3, 
-  Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen
+  Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen, Power
 } from 'lucide-react';
-import clinicLogo from '../assets/images/clinic_logo_minimal_1790833437046.jpg';
+import clinicLogo from '../assets/images/medi-logo.jpg';
 
 interface SidebarProps {
   activeTab: string;
@@ -134,8 +134,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
         {/* Top Sidebar Header with Pin/Collapse Toggle */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-100 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-medical-primary to-cyan-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
-              M
+            <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 p-0.5 overflow-hidden flex items-center justify-center shadow-xs shrink-0">
+              <img src={clinicLogo} alt="MediFlow Logo" className="w-full h-full object-contain rounded-lg" />
             </div>
             <div className={`transition-all duration-200 ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
               <p className="text-xs font-bold text-slate-900 leading-tight">MedFlow Pro</p>
@@ -225,6 +225,27 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
               Logout
             </span>
           </button>
+
+          {typeof window !== 'undefined' && window.electronAPI?.isElectron && (
+            <button 
+              onClick={() => {
+                if (window.electronAPI?.close) {
+                  window.electronAPI.close();
+                }
+              }}
+              title="Exit MediFlow Application (Alt+F4)"
+              className="w-full flex items-center gap-3.5 px-3 py-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all duration-150 group text-left cursor-pointer"
+            >
+              <div className="shrink-0 w-6 flex justify-center text-slate-400 group-hover:text-rose-600">
+                <Power size={17} />
+              </div>
+              <span className={`text-[9.5pt] font-semibold tracking-tight whitespace-nowrap transition-all duration-200 ${
+                isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-3 pointer-events-none'
+              }`}>
+                Exit App
+              </span>
+            </button>
+          )}
         </div>
       </aside>
     </>

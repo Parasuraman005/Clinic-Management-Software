@@ -100,3 +100,16 @@ button, a {
   }
 }
 
+/* Electron frameless window natural drag support */
+header {
+  -webkit-app-region: drag;
+}
+
+header button,
+header input,
+header a,
+header select,
+header [role="button"] {
+  -webkit-app-region: no-drag;
+}
+

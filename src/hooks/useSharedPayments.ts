@@ -55,6 +55,37 @@ export const getInitialPayments = (): PaymentRecord[] => {
 let currentPayments: PaymentRecord[] = getInitialPayments();
 const listeners = new Set<(payments: PaymentRecord[]) => void>();
 
+type PaymentStatusListener = (patientId?: string, patientName?: string, status?: string) => void;
+const paymentStatusListeners = new Set<PaymentStatusListener>();
+
+export const registerPaymentStatusListener = (fn: PaymentStatusListener) => {
+  paymentStatusListeners.add(fn);
+  return () => {
+    paymentStatusListeners.delete(fn);
+  };
+};
+
+const notifyPaymentStatusChange = (patientId?: string, patientName?: string, status?: string) => {
+  paymentStatusListeners.forEach(listener => {
+    try {
+      listener(patientId, patientName, status);
+    } catch (e) {
+      console.error('Error in payment status listener', e);
+    }
+  });
+};
+
+export const hasPatientCompletedPayment = (patientId?: string, patientName?: string): boolean => {
+  const normName = patientName?.toLowerCase().trim();
+  const normId = patientId?.toLowerCase().trim();
+  return currentPayments.some(p => {
+    if (p.status !== 'Completed') return false;
+    if (normId && p.patientId && p.patientId.toLowerCase().trim() === normId) return true;
+    if (normName && p.patient && p.patient.toLowerCase().trim() === normName) return true;
+    return false;
+  });
+};
+
 const broadcast = () => {
   try {
     localStorage.setItem(PAYMENTS_STORAGE_KEY, JSON.stringify(currentPayments));
@@ -65,13 +96,23 @@ const broadcast = () => {
 };
 
 export const updatePaymentRecord = (id: string, updates: Partial<PaymentRecord>) => {
-  currentPayments = currentPayments.map(p => p.id === id ? { ...p, ...updates } : p);
+  currentPayments = currentPayments.map(p => {
+    if (p.id === id) {
+      const updated = { ...p, ...updates };
+      if (updates.status) {
+        notifyPaymentStatusChange(updated.patientId, updated.patient, updated.status);
+      }
+      return updated;
+    }
+    return p;
+  });
   broadcast();
 };
 
 export const addPaymentRecord = (payment: PaymentRecord) => {
   currentPayments = [payment, ...currentPayments];
   broadcast();
+  notifyPaymentStatusChange(payment.patientId, payment.patient, payment.status);
 };
 
 export const useSharedPayments = () => {
@@ -90,6 +131,7 @@ export const useSharedPayments = () => {
   return {
     payments,
     updatePayment: updatePaymentRecord,
-    addPayment: addPaymentRecord
+    addPayment: addPaymentRecord,
+    hasCompletedPayment: hasPatientCompletedPayment
   };
 };

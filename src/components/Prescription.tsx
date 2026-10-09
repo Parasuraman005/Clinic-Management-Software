@@ -6,7 +6,7 @@ import {
   User, AlertCircle, FileText, Check,
   Stethoscope, RefreshCw, ShieldCheck, CreditCard
 } from 'lucide-react';
-import clinicLogo from '../assets/images/clinic_logo_minimal_1790833437046.jpg';
+import clinicLogo from '../assets/images/medi-logo.jpg';
 import { mockPrescriptions, mockMedicines } from '../mockData';
 import { Prescription, PrescriptionMedicine, Patient, Doctor } from '../types';
 import jsPDF from 'jspdf';

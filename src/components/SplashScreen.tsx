@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import clinicLogo from '../assets/images/clinic_logo_minimal_1790833437046.jpg';
+import clinicLogo from '../assets/images/medi-logo.jpg';
 
 interface SplashScreenProps {
   onFinish: () => void;

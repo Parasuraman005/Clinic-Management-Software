@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { QueueItem, Patient } from '../types';
+import { hasPatientCompletedPayment, registerPaymentStatusListener } from './useSharedPayments';
 
 export interface ExtendedQueueItem extends QueueItem {
   addedTime: string;
@@ -7,6 +8,38 @@ export interface ExtendedQueueItem extends QueueItem {
 }
 
 const STORAGE_KEY = 'medflow_queue_data_fifo';
+const COMPLETED_CONSULTATIONS_KEY = 'medflow_completed_consultations';
+
+export const getCompletedConsultationPatients = (): Set<string> => {
+  try {
+    const raw = localStorage.getItem(COMPLETED_CONSULTATIONS_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch (e) {
+    console.error('Failed to load completed consultations', e);
+  }
+  return new Set();
+};
+
+export const markConsultationCompletedForPatient = (patientId?: string, patientName?: string) => {
+  const set = getCompletedConsultationPatients();
+  if (patientId) set.add(patientId.toLowerCase().trim());
+  if (patientName) set.add(patientName.toLowerCase().trim());
+  try {
+    localStorage.setItem(COMPLETED_CONSULTATIONS_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) {
+    console.error('Failed to save completed consultations', e);
+  }
+};
+
+export const isConsultationCompletedForPatient = (patientId?: string, patientName?: string): boolean => {
+  const set = getCompletedConsultationPatients();
+  if (patientId && set.has(patientId.toLowerCase().trim())) return true;
+  if (patientName && set.has(patientName.toLowerCase().trim())) return true;
+  return false;
+};
 
 const defaultQueue: ExtendedQueueItem[] = [
   {
@@ -124,6 +157,51 @@ const broadcast = () => {
   listeners.forEach(listener => listener([...currentQueue]));
 };
 
+export const checkAndRemoveCompletedPatientFromQueue = (patientId?: string, patientName?: string): boolean => {
+  const normId = patientId?.toLowerCase().trim();
+  const normName = patientName?.toLowerCase().trim();
+
+  const item = currentQueue.find(q => 
+    (normId && q.patientId && q.patientId.toLowerCase().trim() === normId) ||
+    (normName && q.patientName && q.patientName.toLowerCase().trim() === normName)
+  );
+
+  if (!item) return false;
+
+  const consultationDone = item.status === 'Completed' || isConsultationCompletedForPatient(item.patientId, item.patientName);
+  const paymentDone = hasPatientCompletedPayment(item.patientId, item.patientName);
+
+  if (consultationDone && paymentDone) {
+    currentQueue = currentQueue.filter(q => q.id !== item.id);
+    broadcast();
+    return true;
+  }
+  return false;
+};
+
+export const reconcileCompletedAndPaidQueue = () => {
+  const initialCount = currentQueue.length;
+  currentQueue = currentQueue.filter(item => {
+    const consultationDone = item.status === 'Completed' || isConsultationCompletedForPatient(item.patientId, item.patientName);
+    const paymentDone = hasPatientCompletedPayment(item.patientId, item.patientName);
+    // If BOTH consultation and payment are complete, remove from queue
+    return !(consultationDone && paymentDone);
+  });
+  if (currentQueue.length !== initialCount) {
+    broadcast();
+  }
+};
+
+// Reconcile initial queue state on module load
+reconcileCompletedAndPaidQueue();
+
+// Automatically listen for payment completion and remove patients if consultation is also complete
+registerPaymentStatusListener((patientId, patientName, status) => {
+  if (status === 'Completed') {
+    checkAndRemoveCompletedPatientFromQueue(patientId, patientName);
+  }
+});
+
 export const addPatientToQueue = (
   patient: Partial<Patient> & { name: string; id?: string },
   options?: { doctorName?: string; priority?: 'Normal' | 'Urgent' | 'Emergency' }
@@ -157,6 +235,17 @@ export const addPatientToQueue = (
 };
 
 export const updateQueueItemStatus = (id: string, status: QueueItem['status']) => {
+  const target = currentQueue.find(item => item.id === id);
+  if (target && status === 'Completed') {
+    markConsultationCompletedForPatient(target.patientId, target.patientName);
+    // If payment is already complete, remove that patient from queue immediately!
+    if (hasPatientCompletedPayment(target.patientId, target.patientName)) {
+      currentQueue = currentQueue.filter(item => item.id !== id);
+      broadcast();
+      return;
+    }
+  }
+
   currentQueue = currentQueue.map(item => item.id === id ? { ...item, status } : item);
   broadcast();
 };
@@ -177,6 +266,8 @@ export const useSharedQueue = () => {
   const [queue, setQueue] = useState<ExtendedQueueItem[]>(currentQueue);
 
   useEffect(() => {
+    // Run reconciliation on mount
+    reconcileCompletedAndPaidQueue();
     const handleUpdate = (updatedQueue: ExtendedQueueItem[]) => {
       setQueue(updatedQueue);
     };
@@ -191,6 +282,9 @@ export const useSharedQueue = () => {
     addToQueue: addPatientToQueue,
     updateStatus: updateQueueItemStatus,
     removeItem: removeQueueItem,
-    clearExcept: clearQueueExceptAdded
+    clearExcept: clearQueueExceptAdded,
+    checkAndRemoveCompletedPatient: checkAndRemoveCompletedPatientFromQueue,
+    isConsultationCompleted: isConsultationCompletedForPatient,
+    markConsultationCompleted: markConsultationCompletedForPatient
   };
 };

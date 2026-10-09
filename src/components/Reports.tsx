@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, Calendar, Users, TrendingUp, 
   FileText, Download, Printer, Filter, 
@@ -12,11 +12,47 @@ import { toPng } from 'html-to-image';
 
 type ReportTab = 'patient' | 'appointment' | 'revenue' | 'billing';
 
+const REPORTS_PREFS_KEY = 'medflow_reports_preferences';
+
+interface ReportsPreferences {
+  activeReport: ReportTab;
+  dateRange: { start: string; end: string };
+  selectedDoctor: string;
+  timeframe: 'today' | 'week' | 'month' | 'q4';
+}
+
+const getStoredReportsPrefs = (): ReportsPreferences => {
+  try {
+    const raw = localStorage.getItem(REPORTS_PREFS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {
+    activeReport: 'patient',
+    dateRange: { start: '2023-10-01', end: '2023-12-31' },
+    selectedDoctor: 'all',
+    timeframe: 'q4'
+  };
+};
+
 const Reports: React.FC = () => {
-  const [activeReport, setActiveReport] = useState<ReportTab>('patient');
-  const [dateRange, setDateRange] = useState({ start: '2023-10-01', end: '2023-12-31' });
-  const [selectedDoctor, setSelectedDoctor] = useState('all');
-  const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'q4'>('q4');
+  const [initialPrefs] = useState<ReportsPreferences>(getStoredReportsPrefs);
+  const [activeReport, setActiveReport] = useState<ReportTab>(initialPrefs.activeReport);
+  const [dateRange, setDateRange] = useState(initialPrefs.dateRange);
+  const [selectedDoctor, setSelectedDoctor] = useState(initialPrefs.selectedDoctor);
+  const [timeframe, setTimeframe] = useState<'today' | 'week' | 'month' | 'q4'>(initialPrefs.timeframe);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(REPORTS_PREFS_KEY, JSON.stringify({
+        activeReport,
+        dateRange,
+        selectedDoctor,
+        timeframe
+      }));
+    } catch (e) {
+      console.error('Failed to save reports preferences to JSON', e);
+    }
+  }, [activeReport, dateRange, selectedDoctor, timeframe]);
 
   const handlePrint = async () => {
     const input = document.getElementById('report-container');

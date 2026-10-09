@@ -13,18 +13,77 @@ import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useSharedPatients } from '../hooks/useSharedPatients';
 import { useActivePatientContext } from '../hooks/useActivePatientContext';
 import { useSharedQueue } from '../hooks/useSharedQueue';
+import { hasPatientCompletedPayment } from '../hooks/useSharedPayments';
 
 interface ConsultationProps {
   setActiveTab: (tab: string) => void;
 }
 
+const CONSULTATIONS_STORAGE_KEY = 'medflow_consultations_data';
+
+export interface ClinicalFindingsData {
+  chiefComplaint: string;
+  symptoms: string;
+  bp: string;
+  heartRate: string;
+  temp: string;
+  oxygen: string;
+  diagnosis: string;
+  followUpDate: string;
+  notes: string;
+}
+
+const getStoredClinicalFindings = (): Record<string, ClinicalFindingsData> => {
+  try {
+    const raw = localStorage.getItem(CONSULTATIONS_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to parse consultations from JSON', e);
+  }
+  return {};
+};
+
 const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
   const { patients } = useSharedPatients();
-  const { queue, updateStatus } = useSharedQueue();
+  const { queue, updateStatus, removeItem, markConsultationCompleted } = useSharedQueue();
   const { activePatient, setActivePatient: setGlobalActivePatient } = useActivePatientContext();
+  const [statusBanner, setStatusBanner] = useState<{ type: 'success' | 'info'; message: string } | null>(null);
 
   const [selectedPatient, setSelectedPatient] = useState(activePatient || patients[0] || mockPatients[0]);
   const patient = selectedPatient;
+
+  // JSON-backed clinical findings per patient
+  const [allFindings, setAllFindings] = useState<Record<string, ClinicalFindingsData>>(getStoredClinicalFindings);
+  
+  const currentFindings: ClinicalFindingsData = allFindings[patient.id] || {
+    chiefComplaint: '',
+    symptoms: '',
+    bp: '120/80',
+    heartRate: '72 bpm',
+    temp: '98.6',
+    oxygen: '98',
+    diagnosis: '',
+    followUpDate: '',
+    notes: ''
+  };
+
+  const updateFinding = (field: keyof ClinicalFindingsData, value: string) => {
+    setAllFindings(prev => {
+      const updated = {
+        ...prev,
+        [patient.id]: {
+          ...(prev[patient.id] || currentFindings),
+          [field]: value
+        }
+      };
+      try {
+        localStorage.setItem(CONSULTATIONS_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save findings to JSON', e);
+      }
+      return updated;
+    });
+  };
 
   // Sync if activePatient changes
   useEffect(() => {
@@ -37,7 +96,11 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const patientSearchRef = useRef<HTMLDivElement>(null);
 
-  const [diagnosisQuery, setDiagnosisQuery] = useState('');
+  const [diagnosisQuery, setDiagnosisQuery] = useState(currentFindings.diagnosis || '');
+  
+  useEffect(() => {
+    setDiagnosisQuery(currentFindings.diagnosis || '');
+  }, [patient.id]);
   const [showDiagnosisSuggestions, setShowDiagnosisSuggestions] = useState(false);
   const diagnosisSuggestions = useSearchSuggestions(diagnosisQuery);
   const diagnosisRef = useRef<HTMLDivElement>(null);
@@ -65,6 +128,7 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
 
   const handleSelectDiagnosis = (item: SuggestionItem) => {
     setDiagnosisQuery(item.title);
+    updateFinding('diagnosis', item.title);
     setShowDiagnosisSuggestions(false);
   };
 
@@ -78,13 +142,32 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
   };
 
   const handleComplete = () => {
-    // If patient is in queue, update status
-    const queueItem = queue.find(q => q.patientId === patient.id && q.status !== 'Completed');
+    markConsultationCompleted(patient.id, patient.name);
+    const isPaid = hasPatientCompletedPayment(patient.id, patient.name);
+    const queueItem = queue.find(q => q.patientId === patient.id);
+
     if (queueItem) {
-      updateStatus(queueItem.id, 'Completed');
+      if (isPaid) {
+        // Both consultation completed AND payment complete -> remove patient from queue!
+        removeItem(queueItem.id);
+        setStatusBanner({
+          type: 'success',
+          message: `Consultation completed & Payment verified! ${patient.name} has been removed from the queue.`
+        });
+      } else {
+        updateStatus(queueItem.id, 'Completed');
+        setStatusBanner({
+          type: 'info',
+          message: `Consultation completed for ${patient.name}. Patient remains in queue until payment is completed at Billing.`
+        });
+      }
+    } else {
+      setStatusBanner({
+        type: 'success',
+        message: `Consultation completed for ${patient.name}. You can proceed to write a prescription or generate an invoice.`
+      });
     }
     setGlobalActivePatient(patient);
-    alert(`Consultation completed for ${patient.name}. You can now proceed to write a prescription or generate an invoice.`);
   };
 
   const handlePrint = async () => {
@@ -140,6 +223,34 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
 
   return (
     <div id="consultation-container" className="space-y-6 animate-in slide-in-from-bottom duration-500 print:p-0">
+      {statusBanner && (
+        <div className={`p-4 rounded-xl border flex items-center justify-between shadow-xs print:hidden ${
+          statusBanner.type === 'success' 
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-900' 
+            : 'bg-amber-50 border-amber-200 text-amber-900'
+        }`}>
+          <div className="flex items-center gap-3">
+            <CheckCircle2 size={18} className={statusBanner.type === 'success' ? 'text-emerald-600' : 'text-amber-600'} />
+            <span className="text-xs font-bold">{statusBanner.message}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {statusBanner.type === 'info' && (
+              <button
+                onClick={() => setActiveTab('billing')}
+                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs font-bold transition-all"
+              >
+                Go to Billing
+              </button>
+            )}
+            <button
+              onClick={() => setStatusBanner(null)}
+              className="text-xs opacity-60 hover:opacity-100 font-bold px-1.5 py-0.5"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-medical-primary/10 text-medical-primary rounded-xl">
@@ -253,6 +364,8 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
                   <textarea 
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-[12pt] focus:ring-2 focus:ring-medical-primary/20 min-h-[100px]"
                     placeholder="Describe the primary reason for visit..."
+                    value={currentFindings.chiefComplaint}
+                    onChange={(e) => updateFinding('chiefComplaint', e.target.value)}
                   ></textarea>
                 </div>
                 <div className="space-y-2">
@@ -260,6 +373,8 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
                   <textarea 
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-[12pt] focus:ring-2 focus:ring-medical-primary/20 min-h-[100px]"
                     placeholder="List symptoms observed or reported..."
+                    value={currentFindings.symptoms}
+                    onChange={(e) => updateFinding('symptoms', e.target.value)}
                   ></textarea>
                 </div>
               </div>
@@ -268,10 +383,10 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
                 <label className="text-[12pt] font-bold text-slate-700">Vital Signs</label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: 'BP (mmHg)', icon: Activity, placeholder: '120/80', color: 'text-rose-500' },
-                    { label: 'Heart Rate', icon: Heart, placeholder: '72 bpm', color: 'text-rose-500' },
-                    { label: 'Temp (°F)', icon: Thermometer, placeholder: '98.6', color: 'text-amber-500' },
-                    { label: 'Oxygen (%)', icon: Brain, placeholder: '98', color: 'text-blue-500' },
+                    { label: 'BP (mmHg)', key: 'bp' as const, icon: Activity, placeholder: '120/80', color: 'text-rose-500' },
+                    { label: 'Heart Rate', key: 'heartRate' as const, icon: Heart, placeholder: '72 bpm', color: 'text-rose-500' },
+                    { label: 'Temp (°F)', key: 'temp' as const, icon: Thermometer, placeholder: '98.6', color: 'text-amber-500' },
+                    { label: 'Oxygen (%)', key: 'oxygen' as const, icon: Brain, placeholder: '98', color: 'text-blue-500' },
                   ].map((vital) => (
                     <div key={vital.label} className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
                       <div className="flex items-center gap-2 mb-2">
@@ -281,6 +396,8 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
                       <input 
                         type="text" 
                         placeholder={vital.placeholder}
+                        value={currentFindings[vital.key]}
+                        onChange={(e) => updateFinding(vital.key, e.target.value)}
                         className="w-full bg-transparent font-bold text-[14pt] text-slate-900 focus:outline-none tabular-nums"
                       />
                     </div>
@@ -299,6 +416,7 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
                       value={diagnosisQuery}
                       onChange={(e) => {
                         setDiagnosisQuery(e.target.value);
+                        updateFinding('diagnosis', e.target.value);
                         setShowDiagnosisSuggestions(true);
                       }}
                       onFocus={() => setShowDiagnosisSuggestions(true)}
@@ -314,7 +432,12 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
                   <label className="text-[12pt] font-bold text-slate-700">Follow-up Date</label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input type="date" className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-[12pt]" />
+                    <input 
+                      type="date" 
+                      value={currentFindings.followUpDate}
+                      onChange={(e) => updateFinding('followUpDate', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-[12pt]" 
+                    />
                   </div>
                 </div>
               </div>
@@ -324,6 +447,8 @@ const Consultation: React.FC<ConsultationProps> = ({ setActiveTab }) => {
                 <textarea 
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-[12pt] min-h-[120px]"
                   placeholder="Internal notes, observations, or detailed treatment plan..."
+                  value={currentFindings.notes}
+                  onChange={(e) => updateFinding('notes', e.target.value)}
                 ></textarea>
               </div>
             </div>

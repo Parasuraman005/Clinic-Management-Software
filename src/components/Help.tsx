@@ -11,10 +11,33 @@ import { motion, AnimatePresence } from 'motion/react';
 import { mockSupportTickets } from '../mockData';
 import { SupportTicket } from '../types';
 
+const TICKETS_STORAGE_KEY = 'medflow_tickets_data';
+
+const getInitialTickets = (): SupportTicket[] => {
+  try {
+    const raw = localStorage.getItem(TICKETS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to parse tickets from JSON storage', e);
+  }
+  return mockSupportTickets;
+};
+
 const Help: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'guides' | 'faq' | 'tickets' | 'diagnostics' | 'shortcuts'>('guides');
-  const [tickets, setTickets] = useState<SupportTicket[]>(mockSupportTickets);
+  const [tickets, setTickets] = useState<SupportTicket[]>(getInitialTickets);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(TICKETS_STORAGE_KEY, JSON.stringify(tickets));
+    } catch (e) {
+      console.error('Failed to save tickets to JSON storage', e);
+    }
+  }, [tickets]);
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [selectedGuide, setSelectedGuide] = useState<{ title: string; steps: string[]; tips: string } | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
@@ -250,12 +273,12 @@ const Help: React.FC = () => {
           <div className="shrink-0 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 space-y-2 font-sans text-xs">
             <div className="flex items-center gap-2 text-emerald-400 font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>All Systems Operational (18ms)</span>
+              <span>Bangalore Clinic Desk Active (18ms)</span>
             </div>
-            <p className="text-slate-300 text-[11px]">Emergency Clinical Technical Hotline:</p>
+            <p className="text-slate-300 text-[11px]">Indiranagar Clinic: +91 (80) 4567-8900</p>
             <p className="text-sm font-bold text-white tabular-nums flex items-center gap-1.5">
               <Phone size={14} className="text-medical-primary" />
-              +91 98765-43210
+              Emergency: +91 98765-43210
             </p>
           </div>
         </div>

@@ -5,9 +5,21 @@ import {
   Timer, Play, Pill
 } from 'lucide-react';
 import { mockAppointments, mockBills } from '../mockData';
+import { Bill } from '../types';
 import { useSharedQueue } from '../hooks/useSharedQueue';
 import { useSharedPatients } from '../hooks/useSharedPatients';
 import { useSharedPayments } from '../hooks/useSharedPayments';
+
+const getStoredBills = (): Bill[] => {
+  try {
+    const raw = localStorage.getItem('medflow_bills_data');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch { /* fallback */ }
+  return mockBills;
+};
 
 interface DashboardProps {
   setActiveTab: (tab: string) => void;
@@ -17,6 +29,13 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
   const { queue, updateStatus } = useSharedQueue();
   const { patients } = useSharedPatients();
   const { payments } = useSharedPayments();
+  const [bills, setBills] = React.useState<Bill[]>(getStoredBills);
+
+  React.useEffect(() => {
+    const handleStorage = () => setBills(getStoredBills());
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const totalRevenueNumber = payments
     .filter(p => p.status === 'Completed')
@@ -257,7 +276,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
               </button>
             </div>
             <div className="space-y-1.5">
-              {mockBills.slice(0, 2).map((bill) => (
+              {bills.slice(0, 2).map((bill) => (
                 <div key={bill.id} className="flex items-center justify-between text-xs py-1">
                   <div className="truncate mr-2">
                     <span className="font-bold text-slate-900 block truncate">{bill.patientName}</span>

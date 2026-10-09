@@ -8,8 +8,32 @@ import { mockNotifications } from '../mockData';
 import { SystemNotification } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
+const NOTIFICATIONS_STORAGE_KEY = 'medflow_notifications_data';
+
+const getInitialNotifications = (): SystemNotification[] => {
+  try {
+    const raw = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to parse notifications from JSON storage', e);
+  }
+  return mockNotifications;
+};
+
 const Notifications: React.FC = () => {
-  const [notifications, setNotifications] = useState<SystemNotification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<SystemNotification[]>(getInitialNotifications);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
+    } catch (e) {
+      console.error('Failed to save notifications to JSON storage', e);
+    }
+  }, [notifications]);
+
   const [filter, setFilter] = useState<'all' | 'unread' | 'appointment' | 'payment' | 'patient'>('all');
 
   const getIcon = (type: SystemNotification['type']) => {

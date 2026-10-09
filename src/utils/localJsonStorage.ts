@@ -12,6 +12,8 @@ export interface StorageStats {
   usersCount: number;
   notificationsCount: number;
   ticketsCount: number;
+  consultationsCount: number;
+  drugsCount: number;
   totalSizeBytes: number;
   totalSizeFormatted: string;
   lastUpdated: string;
@@ -24,11 +26,15 @@ export const STORAGE_KEYS = {
   QUEUE: 'medflow_queue_data_fifo',
   BILLS: 'medflow_bills_data',
   PAYMENTS: 'medflow_payments_data',
-  PRESCRIPTIONS: 'medflow_prescriptions_data',
+  PRESCRIPTIONS: 'medflow_prescriptions',
   USERS: 'medflow_users_data',
   NOTIFICATIONS: 'medflow_notifications_data',
   TICKETS: 'medflow_tickets_data',
-  SETTINGS: 'medflow_system_settings'
+  SETTINGS: 'medflow_system_settings',
+  CONSULTATIONS: 'medflow_consultations_data',
+  DRUGS: 'medflow_drug_catalog',
+  REPORTS: 'medflow_reports_preferences',
+  COMPLETED_CONSULTATIONS: 'medflow_completed_consultations'
 } as const;
 
 /**
@@ -55,7 +61,8 @@ export const initializeAllLocalStorage = () => {
       localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(initialPayments));
     }
     if (!localStorage.getItem(STORAGE_KEYS.PRESCRIPTIONS)) {
-      localStorage.setItem(STORAGE_KEYS.PRESCRIPTIONS, JSON.stringify(mockPrescriptions));
+      const legacy = localStorage.getItem('medflow_prescriptions_data');
+      localStorage.setItem(STORAGE_KEYS.PRESCRIPTIONS, legacy || JSON.stringify(mockPrescriptions));
     }
     if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(mockUsers));
@@ -65,6 +72,26 @@ export const initializeAllLocalStorage = () => {
     }
     if (!localStorage.getItem(STORAGE_KEYS.TICKETS)) {
       localStorage.setItem(STORAGE_KEYS.TICKETS, JSON.stringify(mockSupportTickets));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.CONSULTATIONS)) {
+      localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify({}));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.DRUGS)) {
+      localStorage.setItem(STORAGE_KEYS.DRUGS, JSON.stringify([
+        { id: 'd-1', name: 'Paracetamol', dosage: '500mg', type: 'Tablet', category: 'Analgesic', stock: 120 },
+        { id: 'd-2', name: 'Amoxicillin', dosage: '250mg', type: 'Capsule', category: 'Antibiotic', stock: 85 },
+        { id: 'd-3', name: 'Metformin', dosage: '500mg', type: 'Tablet', category: 'Antidiabetic', stock: 200 },
+        { id: 'd-4', name: 'Atorvastatin', dosage: '10mg', type: 'Tablet', category: 'Lipid-lowering', stock: 150 },
+        { id: 'd-5', name: 'Cetirizine', dosage: '10mg', type: 'Tablet', category: 'Antihistamine', stock: 95 }
+      ]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.REPORTS)) {
+      localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify({
+        activeReport: 'patient',
+        dateRange: { start: '2023-10-01', end: '2023-12-31' },
+        selectedDoctor: 'all',
+        timeframe: 'q4'
+      }));
     }
   } catch (e) {
     console.error('Failed to initialize local JSON storage:', e);
@@ -100,6 +127,18 @@ export const getStorageStats = (): StorageStats => {
   const usersCount = getCount(STORAGE_KEYS.USERS, mockUsers);
   const notificationsCount = getCount(STORAGE_KEYS.NOTIFICATIONS, mockNotifications);
   const ticketsCount = getCount(STORAGE_KEYS.TICKETS, mockSupportTickets);
+  const consultationsCount = (() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.CONSULTATIONS);
+      if (raw) {
+        totalBytes += new Blob([raw]).size;
+        const obj = JSON.parse(raw);
+        if (typeof obj === 'object' && obj !== null) return Object.keys(obj).length;
+      }
+    } catch { /* ignore */ }
+    return 0;
+  })();
+  const drugsCount = getCount(STORAGE_KEYS.DRUGS, []);
 
   const totalSizeFormatted = totalBytes < 1024 
     ? `${totalBytes} Bytes` 
@@ -118,6 +157,8 @@ export const getStorageStats = (): StorageStats => {
     usersCount,
     notificationsCount,
     ticketsCount,
+    consultationsCount,
+    drugsCount,
     totalSizeBytes: totalBytes,
     totalSizeFormatted,
     lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -153,7 +194,11 @@ export const exportFullDatabaseJson = (): string => {
       users: getParsed(STORAGE_KEYS.USERS, mockUsers),
       notifications: getParsed(STORAGE_KEYS.NOTIFICATIONS, mockNotifications),
       tickets: getParsed(STORAGE_KEYS.TICKETS, mockSupportTickets),
-      settings: getParsed(STORAGE_KEYS.SETTINGS, null)
+      settings: getParsed(STORAGE_KEYS.SETTINGS, null),
+      consultations: getParsed(STORAGE_KEYS.CONSULTATIONS, {}),
+      drugs: getParsed(STORAGE_KEYS.DRUGS, []),
+      reports: getParsed(STORAGE_KEYS.REPORTS, null),
+      completedConsultations: getParsed(STORAGE_KEYS.COMPLETED_CONSULTATIONS, [])
     }
   };
 
@@ -232,6 +277,22 @@ export const importDatabaseFromJson = (jsonString: string): { success: boolean; 
     }
     if (collections.settings && typeof collections.settings === 'object') {
       localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(collections.settings));
+      importedCollectionsCount++;
+    }
+    if (collections.consultations && typeof collections.consultations === 'object') {
+      localStorage.setItem(STORAGE_KEYS.CONSULTATIONS, JSON.stringify(collections.consultations));
+      importedCollectionsCount++;
+    }
+    if (collections.drugs && Array.isArray(collections.drugs)) {
+      localStorage.setItem(STORAGE_KEYS.DRUGS, JSON.stringify(collections.drugs));
+      importedCollectionsCount++;
+    }
+    if (collections.reports && typeof collections.reports === 'object') {
+      localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(collections.reports));
+      importedCollectionsCount++;
+    }
+    if (collections.completedConsultations && Array.isArray(collections.completedConsultations)) {
+      localStorage.setItem(STORAGE_KEYS.COMPLETED_CONSULTATIONS, JSON.stringify(collections.completedConsultations));
       importedCollectionsCount++;
     }
 

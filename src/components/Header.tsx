@@ -2,14 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Menu, Search, Bell, UserPlus, MapPin } from 'lucide-react';
 import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
+import mediLogo from '../assets/images/medi-logo.jpg';
+import { UserAccount } from '../types';
 
 interface HeaderProps {
   setIsOpen: (isOpen: boolean) => void;
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  currentUser?: UserAccount | null;
 }
 
-const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab }) => {
+const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab, currentUser }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestions = useSearchSuggestions(searchTerm);
@@ -61,10 +64,10 @@ const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab }) =
 
         <button 
           onClick={() => setActiveTab('dashboard')}
-          className="flex items-center gap-2.5 text-left group"
+          className="flex items-center gap-2.5 text-left group cursor-pointer"
         >
-          <div className="w-8 h-8 bg-gradient-to-br from-medical-primary to-cyan-600 text-white rounded-xl flex items-center justify-center font-bold text-sm shadow-md shadow-medical-primary/20 shrink-0 group-hover:scale-105 transition-transform">
-            M
+          <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 p-0.5 overflow-hidden flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+            <img src={mediLogo} alt="MediFlow Clinic Logo" className="w-full h-full object-contain rounded-lg" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -149,23 +152,27 @@ const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab }) =
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 border-2 border-white rounded-full"></span>
         </button>
 
-        {/* Admin Profile Lockup */}
+        {/* Current User Profile Lockup */}
         <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200/80">
           <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-slate-900 leading-tight">Admin User</p>
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Super Admin</p>
+            <p className="text-xs font-bold text-slate-900 leading-tight">
+              {currentUser?.name || 'Admin User'}
+            </p>
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+              {currentUser?.accessLevel || currentUser?.role || 'Super Admin'}
+            </p>
           </div>
           <button 
-            onClick={() => setActiveTab('settings')}
-            className="w-9 h-9 rounded-xl bg-slate-100 overflow-hidden border border-slate-200/80 hover:ring-2 hover:ring-medical-primary/30 transition-all shrink-0 relative group"
-            title="Account & System Settings"
+            onClick={() => setActiveTab('staff')}
+            className="w-9 h-9 rounded-xl bg-slate-100 overflow-hidden border border-slate-200/80 hover:ring-2 hover:ring-medical-primary/30 transition-all shrink-0 relative group cursor-pointer"
+            title={`${currentUser?.name || 'Staff User'} · View Staff & Users`}
           >
             <img 
-              src="/src/assets/images/doctor_female_professional_1790961100983.jpg" 
+              src={currentUser?.photoUrl || currentUser?.avatar || "/src/assets/images/doctor_female_professional_1790961100983.jpg"} 
               alt="Profile" 
               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
               onError={(e) => {
-                e.currentTarget.src = 'https://ui-avatars.com/api/?name=AU&background=0284c7&color=fff';
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.name || 'AU')}&background=0284c7&color=fff`;
               }}
             />
             {/* Online green dot on avatar */}

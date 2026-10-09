@@ -15,6 +15,7 @@ import { Patient } from '../types';
 import { InvoicePrintModal } from './InvoicePrintModal';
 import { addPaymentRecord } from '../hooks/useSharedPayments';
 import { useSharedPatients } from '../hooks/useSharedPatients';
+import { useSharedQueue, checkAndRemoveCompletedPatientFromQueue } from '../hooks/useSharedQueue';
 import { useActivePatientContext } from '../hooks/useActivePatientContext';
 
 interface BillingProps {
@@ -247,8 +248,42 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
         notes: `Settled ${lineItems.length} items. Total: ₹${calculations.grandTotal.toFixed(2)}, Paid: ₹${calculations.amountPaid.toFixed(2)}${calculations.balanceDue > 0 ? `, Balance: ₹${calculations.balanceDue.toFixed(2)}` : ''}`
       });
 
+      // Save Bill into medflow_bills_data JSON storage
+      const newBill = {
+        id: newInvoiceNo,
+        patientId: selectedPatient.id,
+        patientName: selectedPatient.name,
+        date: dateStr,
+        amount: calculations.amountPaid,
+        status: calculations.paymentStatus === 'Completed' ? 'Paid' : 'Pending',
+        items: lineItems.map(item => ({
+          description: item.desc,
+          price: item.price,
+          quantity: item.qty
+        })),
+        tax: calculations.taxAmount,
+        discount: calculations.discountAmount,
+        total: calculations.grandTotal
+      };
+      try {
+        const rawBills = localStorage.getItem('medflow_bills_data');
+        const existingBills = rawBills ? JSON.parse(rawBills) : [];
+        localStorage.setItem('medflow_bills_data', JSON.stringify([newBill, ...(Array.isArray(existingBills) ? existingBills : [])]));
+      } catch (err) {
+        console.error('Failed to save bill to JSON storage', err);
+      }
+
+      let queueCleared = false;
+      if (calculations.paymentStatus === 'Completed') {
+        queueCleared = checkAndRemoveCompletedPatientFromQueue(selectedPatient.id, selectedPatient.name);
+      }
+
       setIsProcessing(false);
-      setSuccessMessage(`Invoice ${newInvoiceNo} settled for ₹${calculations.amountPaid.toFixed(2)} (${methodLabel})`);
+      setSuccessMessage(
+        `Invoice ${newInvoiceNo} settled for ₹${calculations.amountPaid.toFixed(2)} (${methodLabel})${
+          queueCleared ? ' — Consultation & Payment complete: Patient cleared from Queue!' : ''
+        }`
+      );
       setIsSuccess(true);
 
       setTimeout(() => {

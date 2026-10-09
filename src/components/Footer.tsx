@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
-import clinicLogo from '../assets/images/clinic_logo_minimal_1790833437046.jpg';
+import clinicLogo from '../assets/images/medi-logo.jpg';
 
 interface FooterProps {
   currentTime: Date;
@@ -34,9 +34,16 @@ const Footer: React.FC<FooterProps> = ({ currentTime }) => {
         <span>MedFlow Pro v3.4.2</span>
       </div>
 
-      {/* Center: Developed by Parasuraman */}
-      <div className="text-slate-500 font-medium">
-        Developed by Parasuraman
+      {/* Center: Location + Developed by Parasuraman */}
+      <div className="hidden md:flex items-center gap-2 text-slate-500 font-medium">
+        <span className="text-slate-700 font-semibold">Indiranagar, Bangalore (KA)</span>
+        <span className="text-slate-300">·</span>
+        <span>Ph: +91 (80) 4567-8900</span>
+        <span className="text-slate-300">·</span>
+        <span>Developed by Parasuraman</span>
+      </div>
+      <div className="md:hidden text-slate-500 font-medium">
+        <span>Bangalore · By Parasuraman</span>
       </div>
 
       {/* Right: Current Date + Current Time */}
