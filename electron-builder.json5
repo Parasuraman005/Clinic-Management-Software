@@ -1,0 +1,51 @@
+{
+  "appId": "com.parasuraman.mediflow",
+  "productName": "MediFlow Clinic",
+  "copyright": "Copyright © 2026 MediFlow Healthcare Technologies",
+  "directories": {
+    "output": "release",
+    "buildResources": "build"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "public/**/*",
+    "package.json"
+  ],
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "parasuraman",
+      "repo": "mediflow-clinic"
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      },
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/favicon.ico",
+    "signExecutable": false,
+    "artifactName": "${productName} Setup ${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": "always",
+    "createStartMenuShortcut": true,
+    "shortcutName": "MediFlow Clinic",
+    "uninstallDisplayName": "${productName}",
+    "installerIcon": "public/favicon.ico",
+    "uninstallerIcon": "public/favicon.ico"
+  },
+  "portable": {
+    "artifactName": "${productName} Portable ${version}.${ext}"
+  }
+}

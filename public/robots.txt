@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /policies
+Allow: /help
+
+# Disallow private, clinical EHR, authentication, financial, and administrative routes
+Disallow: /login
+Disallow: /dashboard
+Disallow: /patients
+Disallow: /records
+Disallow: /consultation
+Disallow: /appointments
+Disallow: /queue
+Disallow: /prescriptions
+Disallow: /billing
+Disallow: /payments
+Disallow: /reports
+Disallow: /staff
+Disallow: /settings
+Disallow: /notifications
+Disallow: /404
+Disallow: /500
+Disallow: /thankyou
+
+Sitemap: https://cms-pa.netlify.app/sitemap.xml

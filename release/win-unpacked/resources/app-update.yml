@@ -1,0 +1,4 @@
+owner: parasuraman
+repo: mediflow-clinic
+provider: github
+updaterCacheDirName: mediflow-clinic-updater

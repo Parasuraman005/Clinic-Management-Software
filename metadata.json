@@ -1,0 +1,8 @@
+{
+  "name": "MedFlow Pro - Clinic Management System",
+  "description": "Professional healthcare administration platform for managing patients, appointments, billing, and clinical workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
