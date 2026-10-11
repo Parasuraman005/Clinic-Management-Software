@@ -8,7 +8,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/parasuraman/mediflow-clinic.git"
+    "url": "https://github.com/Parasuraman005/Clinic-Management-Software.git"
   },
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
@@ -48,7 +48,7 @@
     "cross-env": "^10.1.0",
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
-    "esbuild": "^0.28.2",
+    "esbuild": "^0.25.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",
