@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (url) => ipcRenderer.invoke('open-external-url', url),
   print: (options) => ipcRenderer.invoke('window-print', options),
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  showSaveDialog: (options) => ipcRenderer.invoke('show-save-dialog', options),
   
   // Window maximize listener
   onMaximizeChange: (callback) => {

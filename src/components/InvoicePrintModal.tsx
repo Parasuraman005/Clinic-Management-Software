@@ -7,6 +7,7 @@ import {
 import { motion } from 'framer-motion';
 import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 
 export interface InvoicePrintData {
   invoiceNumber: string;
@@ -74,6 +75,7 @@ const numberToIndianWords = (num: number): string => {
 };
 
 export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ isOpen, onClose, data }) => {
+  const { clinicName, tagline, address, phone, email, regNumber, taxNumber, currencySymbol } = useSharedSettings();
   const invoiceRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -226,14 +228,14 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ isOpen, on
               <div className="space-y-1.5">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-medical-primary text-white flex items-center justify-center font-bold text-xl shadow-xs">
-                    MF
+                    {(clinicName || 'M').substring(0, 2).toUpperCase()}
                   </div>
                   <div>
                     <h1 className="text-xl font-bold text-slate-900 uppercase tracking-tight">
-                      MedFlow Healthcare Clinic
+                      {clinicName || 'MedFlow Healthcare Clinic'}
                     </h1>
                     <p className="text-xs text-medical-primary font-semibold">
-                      Outpatient & Specialty Clinical Care
+                      {tagline || 'Outpatient & Specialty Clinical Care'}
                     </p>
                   </div>
                 </div>
@@ -241,14 +243,14 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ isOpen, on
                 <div className="text-[11px] text-slate-600 space-y-0.5 pt-1">
                   <p className="flex items-center gap-1.5">
                     <MapPin size={12} className="text-slate-400" />
-                    123 Healthcare Boulevard, Medical District, Bangalore, KA 560001
+                    {address || '123 Healthcare Boulevard, Medical District, Bangalore, KA 560001'}
                   </p>
                   <p className="flex items-center gap-1.5">
                     <Phone size={12} className="text-slate-400" />
-                    +91 98765-43210 • <Mail size={12} className="text-slate-400 ml-1" /> billing@medflow.com
+                    {phone || '+91 98765-43210'} • <Mail size={12} className="text-slate-400 ml-1" /> {email || 'billing@medflow.com'}
                   </p>
                   <p className="text-[10px] text-slate-500 font-mono">
-                    Reg No: <strong className="text-slate-700">CLINIC-REG-889922</strong> • GSTIN: <strong className="text-slate-700">29AAACM1234F1Z5</strong>
+                    Reg No: <strong className="text-slate-700">{regNumber || 'CLINIC-REG-889922'}</strong> • GSTIN: <strong className="text-slate-700">{taxNumber || '29AAACM1234F1Z5'}</strong>
                   </p>
                 </div>
               </div>
@@ -314,8 +316,8 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ isOpen, on
                     <th className="py-2.5 px-3 text-left">Clinical Service / Item Description</th>
                     <th className="py-2.5 px-3 text-center w-24">SAC Code</th>
                     <th className="py-2.5 px-3 text-center w-14">Qty</th>
-                    <th className="py-2.5 px-3 text-right w-24">Rate (₹)</th>
-                    <th className="py-2.5 px-3 text-right w-28">Amount (₹)</th>
+                    <th className="py-2.5 px-3 text-right w-24">Rate ({currencySymbol})</th>
+                    <th className="py-2.5 px-3 text-right w-28">Amount ({currencySymbol})</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -326,10 +328,10 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ isOpen, on
                       <td className="py-2.5 px-3 text-center text-slate-500 font-mono text-[10px]">999312</td>
                       <td className="py-2.5 px-3 text-center font-bold text-slate-700">{item.qty}</td>
                       <td className="py-2.5 px-3 text-right font-mono text-slate-700 tabular-nums">
-                        ₹{item.price.toFixed(2)}
+                        {currencySymbol}{item.price.toFixed(2)}
                       </td>
                       <td className="py-2.5 px-3 text-right font-bold font-mono text-slate-900 tabular-nums">
-                        ₹{(item.qty * item.price).toFixed(2)}
+                        {currencySymbol}{(item.qty * item.price).toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -343,7 +345,7 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ isOpen, on
               <div className="sm:col-span-7 space-y-3">
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-                    Amount in Words (INR):
+                    Amount in Words:
                   </span>
                   <p className="text-xs font-bold text-slate-800 italic">
                     {numberToIndianWords(grandTotal)}
@@ -368,20 +370,20 @@ export const InvoicePrintModal: React.FC<InvoicePrintModalProps> = ({ isOpen, on
               <div className="sm:col-span-5 space-y-1.5 text-xs">
                 <div className="flex justify-between py-1 text-slate-600">
                   <span>Subtotal (Gross)</span>
-                  <span className="font-mono font-medium tabular-nums">₹{subtotal.toFixed(2)}</span>
+                  <span className="font-mono font-medium tabular-nums">{currencySymbol}{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between py-1 text-slate-600 border-t border-slate-100">
                   <span>CGST (2.5%)</span>
-                  <span className="font-mono font-medium tabular-nums">₹{cgst.toFixed(2)}</span>
+                  <span className="font-mono font-medium tabular-nums">{currencySymbol}{cgst.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between py-1 text-slate-600 border-t border-slate-100">
                   <span>SGST (2.5%)</span>
-                  <span className="font-mono font-medium tabular-nums">₹{sgst.toFixed(2)}</span>
+                  <span className="font-mono font-medium tabular-nums">{currencySymbol}{sgst.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-t-2 border-slate-900 text-sm font-bold text-slate-900 bg-slate-50 px-2 rounded-lg">
-                  <span>Total Amount Paid (INR)</span>
+                  <span>Total Amount Paid</span>
                   <span className="font-mono text-base tabular-nums text-medical-primary">
-                    ₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {currencySymbol}{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="text-right text-[10px] text-emerald-600 font-bold flex items-center justify-end gap-1">

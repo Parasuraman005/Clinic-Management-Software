@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 import clinicLogo from '../assets/images/medi-logo.jpg';
 
 interface FooterProps {
@@ -7,6 +8,8 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({ currentTime }) => {
+  const { clinicName, address, phone } = useSharedSettings();
+
   const formattedDate = currentTime.toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
@@ -18,6 +21,8 @@ const Footer: React.FC<FooterProps> = ({ currentTime }) => {
     minute: '2-digit',
     second: '2-digit'
   });
+
+  const shortAddress = address ? address.split(',')[0] : 'Central Hospital';
 
   return (
     <footer className="h-10 bg-white/90 backdrop-blur-md border-t border-slate-200/80 px-4 md:px-6 flex items-center justify-between text-[11px] font-sans text-slate-600 shrink-0 select-none">
@@ -31,19 +36,19 @@ const Footer: React.FC<FooterProps> = ({ currentTime }) => {
             e.currentTarget.style.display = 'none';
           }}
         />
-        <span>MedFlow Pro v3.4.2</span>
+        <span className="truncate max-w-[180px] sm:max-w-[260px]">{clinicName || 'MedFlow Pro'}</span>
       </div>
 
       {/* Center: Location + Developed by Parasuraman */}
       <div className="hidden md:flex items-center gap-2 text-slate-500 font-medium">
-        <span className="text-slate-700 font-semibold">Indiranagar, Bangalore (KA)</span>
+        <span className="text-slate-700 font-semibold truncate max-w-[180px]">{shortAddress}</span>
         <span className="text-slate-300">·</span>
-        <span>Ph: +91 (80) 4567-8900</span>
+        <span>Ph: {phone || '+91 98765-43210'}</span>
         <span className="text-slate-300">·</span>
         <span>Developed by Parasuraman</span>
       </div>
-      <div className="md:hidden text-slate-500 font-medium">
-        <span>Bangalore · By Parasuraman</span>
+      <div className="md:hidden text-slate-500 font-medium truncate max-w-[140px]">
+        <span>{shortAddress}</span>
       </div>
 
       {/* Right: Current Date + Current Time */}

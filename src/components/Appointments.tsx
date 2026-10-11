@@ -18,8 +18,7 @@ import {
   X,
   RotateCcw,
   User,
-  Stethoscope,
-  Phone
+  Stethoscope
 } from 'lucide-react';
 import { mockAppointments } from '../mockData';
 import { Appointment } from '../types';
@@ -29,6 +28,7 @@ import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useSharedPatients } from '../hooks/useSharedPatients';
 import { useSharedDoctors } from '../hooks/useSharedDoctors';
 import { useSharedQueue, checkAndRemoveCompletedPatientFromQueue, markConsultationCompletedForPatient } from '../hooks/useSharedQueue';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 
 interface AppointmentsProps {
   setActiveTab: (tab: string) => void;
@@ -59,6 +59,7 @@ const getInitialAppointments = (): Appointment[] => {
 };
 
 const Appointments: React.FC<AppointmentsProps> = ({ setActiveTab }) => {
+  const { currencySymbol } = useSharedSettings();
   const { patients } = useSharedPatients();
   const { doctors } = useSharedDoctors();
   const { addToQueue } = useSharedQueue();
@@ -1380,7 +1381,7 @@ const Appointments: React.FC<AppointmentsProps> = ({ setActiveTab }) => {
                       </span>
                       {selectedBookingDoctor && (
                         <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
-                          Fee: ₹{selectedBookingDoctor.consultationFee}
+                          Fee: {currencySymbol}{selectedBookingDoctor.consultationFee}
                         </span>
                       )}
                     </label>
@@ -1448,7 +1449,7 @@ const Appointments: React.FC<AppointmentsProps> = ({ setActiveTab }) => {
                                 </div>
                                 <div>
                                   <p className="font-bold text-xs text-slate-900">{d.name}</p>
-                                  <p className="text-[10px] text-slate-400">{d.specialization} • Fee: ₹{d.consultationFee}</p>
+                                  <p className="text-[10px] text-slate-400">{d.specialization} • Fee: {currencySymbol}{d.consultationFee}</p>
                                 </div>
                               </div>
                               <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-md font-semibold text-slate-600">Select</span>

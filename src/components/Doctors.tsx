@@ -1,16 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  UserRound, Search, Plus, Eye, Edit, 
+  Search, Plus, Eye, Edit, 
   Calendar, MoreVertical, Phone, Mail, Clock, 
   Award, Receipt, ArrowLeft,
   CheckCircle2, Trash2, X,
-  CalendarDays, ChevronDown, Save, ShieldCheck, UserCheck
+  CalendarDays, ChevronDown, Save
 } from 'lucide-react';
 import { Doctor } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useSharedDoctors } from '../hooks/useSharedDoctors';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 
 interface DoctorsProps {
   setActiveTab?: (tab: string) => void;
@@ -33,6 +34,7 @@ const SPECIALIZATION_OPTIONS = [
 ];
 
 const Doctors: React.FC<DoctorsProps> = ({ setActiveTab }) => {
+  const { currencySymbol } = useSharedSettings();
   const { doctors, addDoctor, updateDoctor, deleteDoctor } = useSharedDoctors();
 
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
@@ -461,7 +463,7 @@ const Doctors: React.FC<DoctorsProps> = ({ setActiveTab }) => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700 text-[11px]">Consultation Fee (₹)</label>
+                    <label className="font-bold text-slate-700 text-[11px]">Consultation Fee ({currencySymbol})</label>
                     <input 
                       type="number"
                       required
@@ -836,7 +838,7 @@ const Doctors: React.FC<DoctorsProps> = ({ setActiveTab }) => {
                 </div>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center shrink-0 w-full md:w-auto">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Consultation Fee</span>
-                  <span className="text-2xl font-bold text-medical-primary tabular-nums">₹{selectedDoctor.consultationFee.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-medical-primary tabular-nums">{currencySymbol}{selectedDoctor.consultationFee.toFixed(2)}</span>
                   <span className="text-[10px] text-slate-400 block mt-0.5">{selectedDoctor.appointmentDuration || 15} Mins / Slot</span>
                 </div>
               </div>
@@ -900,7 +902,7 @@ const Doctors: React.FC<DoctorsProps> = ({ setActiveTab }) => {
                 <div className="space-y-2 text-xs">
                   <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
                     <span className="text-[9px] font-bold text-slate-400 uppercase block">Fee per Consultation</span>
-                    <span className="text-base font-bold text-slate-900">₹{selectedDoctor.consultationFee.toFixed(2)} <span className="text-xs text-slate-500 font-semibold">INR</span></span>
+                    <span className="text-base font-bold text-slate-900">{currencySymbol}{selectedDoctor.consultationFee.toFixed(2)} <span className="text-xs text-slate-500 font-semibold">INR</span></span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
                     <span className="text-[9px] font-bold text-slate-400 uppercase block">Slot Duration</span>
@@ -1119,7 +1121,7 @@ const Doctors: React.FC<DoctorsProps> = ({ setActiveTab }) => {
                     </p>
                     <p className="flex items-center gap-1 truncate justify-end">
                       <Receipt size={11} className="text-slate-400" />
-                      <span className="font-bold text-slate-800">₹{doc.consultationFee}</span>
+                      <span className="font-bold text-slate-800">{currencySymbol}{doc.consultationFee}</span>
                     </p>
                   </div>
                 </div>

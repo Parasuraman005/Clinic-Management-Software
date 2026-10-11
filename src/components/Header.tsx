@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, Search, Bell, UserPlus, MapPin } from 'lucide-react';
+import { Menu, Search, Bell, UserPlus, MapPin, Keyboard } from 'lucide-react';
 import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 import mediLogo from '../assets/images/medi-logo.jpg';
 import { UserAccount } from '../types';
 
@@ -10,9 +11,11 @@ interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   currentUser?: UserAccount | null;
+  onOpenShortcuts?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab, currentUser }) => {
+const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab, currentUser, onOpenShortcuts }) => {
+  const { clinicName, tagline, address, adminName, designation } = useSharedSettings();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestions = useSearchSuggestions(searchTerm);
@@ -71,13 +74,15 @@ const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab, cur
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h1 className="text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap">MedFlow Pro</h1>
-              <span className="hidden sm:inline-block px-1.5 py-0.2 bg-medical-primary/10 text-medical-primary rounded text-[9px] font-bold uppercase tracking-wider">
+              <h1 className="text-sm font-bold text-slate-900 tracking-tight whitespace-nowrap truncate max-w-[160px] sm:max-w-[240px]">
+                {clinicName || 'MedFlow Pro'}
+              </h1>
+              <span className="hidden sm:inline-block px-1.5 py-0.2 bg-medical-primary/10 text-medical-primary rounded text-[9px] font-bold uppercase tracking-wider shrink-0">
                 EHR
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 font-medium tracking-tight hidden sm:block">
-              Clinical Operating System
+            <p className="text-[10px] text-slate-400 font-medium tracking-tight hidden sm:block truncate max-w-[220px]">
+              {tagline || 'Clinical Operating System'}
             </p>
           </div>
         </button>
@@ -85,9 +90,11 @@ const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab, cur
         {/* Location / Branch Badge */}
         <div className="hidden xl:flex items-center gap-1.5 pl-3 border-l border-slate-200/80 text-xs text-slate-500">
           <MapPin size={13} className="text-medical-primary shrink-0" />
-          <span className="font-semibold text-slate-700">Central Hospital</span>
+          <span className="font-semibold text-slate-700 truncate max-w-[200px]" title={address}>
+            {address ? address.split(',')[0] : 'Central Hospital'}
+          </span>
           <span className="text-slate-300">·</span>
-          <span className="text-[11px] text-slate-400">OPD Block A</span>
+          <span className="text-[11px] text-slate-400">OPD Active</span>
         </div>
       </div>
 
@@ -138,6 +145,15 @@ const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab, cur
           <span>Station 01 · Active</span>
         </div>
 
+        {/* Keyboard Shortcuts Help Button */}
+        <button
+          onClick={onOpenShortcuts}
+          className="p-2 rounded-xl text-slate-500 hover:text-medical-primary hover:bg-slate-100 transition-all cursor-pointer"
+          title="Keyboard Shortcuts (?) "
+        >
+          <Keyboard size={17} />
+        </button>
+
         {/* Notifications Button with unread counter */}
         <button 
           onClick={() => setActiveTab('notifications')}
@@ -155,11 +171,11 @@ const Header: React.FC<HeaderProps> = ({ setIsOpen, activeTab, setActiveTab, cur
         {/* Current User Profile Lockup */}
         <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200/80">
           <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-slate-900 leading-tight">
-              {currentUser?.name || 'Admin User'}
+            <p className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[150px]">
+              {currentUser?.name || adminName || 'Admin User'}
             </p>
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-              {currentUser?.accessLevel || currentUser?.role || 'Super Admin'}
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider truncate max-w-[150px]">
+              {currentUser?.accessLevel || currentUser?.role || designation || 'Administrator'}
             </p>
           </div>
           <button 

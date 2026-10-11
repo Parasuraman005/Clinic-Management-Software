@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   ArrowLeft, Save, CheckCircle2, 
   ListOrdered, Phone, User, Calendar, MapPin, 
-  Stethoscope, Clock, ArrowRight, Droplets, Mail, UserCheck
+  Stethoscope, Clock, Droplets, Mail, UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSharedPatients } from '../hooks/useSharedPatients';

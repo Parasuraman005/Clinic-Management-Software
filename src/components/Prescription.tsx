@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSharedPatients } from '../hooks/useSharedPatients';
 import { useSharedDoctors } from '../hooks/useSharedDoctors';
 import { useActivePatientContext } from '../hooks/useActivePatientContext';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 
 interface PrescriptionProps {
   setActiveTab?: (tab: string) => void;
@@ -77,6 +78,7 @@ const createInitialMedicine = (): PrescriptionMedicine => ({
 });
 
 const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
+  const { clinicName, tagline, address, phone, email, regNumber, taxNumber } = useSharedSettings();
   // Navigation view: 'prescription' (main builder), 'preview' (A4 document preview), 'drugs' (drug list), 'records' (past prescriptions)
   const [activeView, setActiveView] = useState<'prescription' | 'preview' | 'drugs' | 'records'>('prescription');
   
@@ -1354,22 +1356,22 @@ const PrescriptionPage: React.FC<PrescriptionProps> = ({ setActiveTab }) => {
             />
             <div>
               <h2 className="text-lg font-black text-slate-900 tracking-tight uppercase leading-tight">
-                MEDIFLOW CLINIC & OPD CENTER
+                {clinicName || 'MEDIFLOW CLINIC & OPD CENTER'}
               </h2>
               <p className="text-[11px] text-slate-600 font-sans leading-tight mt-0.5">
-                Multi-Speciality Outpatient Hospital & Diagnostic Center
+                {tagline || 'Multi-Speciality Outpatient Hospital & Diagnostic Center'}
               </p>
               <p className="text-[9px] text-slate-500 font-sans mt-0.5">
-                NABH Accredited • Reg No: KA/BLR/MED-2023/8892
+                Reg No: {regNumber || 'CLINIC-REG-889922'} • GSTIN: {taxNumber || '29AAACM1234F1Z5'}
               </p>
             </div>
           </div>
 
-          <div className="text-right text-[9px] text-slate-600 font-sans space-y-0.5 leading-tight">
-            <p className="font-bold text-slate-900">100 Feet Road, Indiranagar</p>
-            <p>Bangalore, Karnataka - 560038</p>
-            <p>Phone: +91 80 2528 9000</p>
-            <p>Email: opd@medflowcare.com</p>
+          <div className="text-right text-[9px] text-slate-600 font-sans space-y-0.5 leading-tight max-w-[220px]">
+            <p className="font-bold text-slate-900">{address ? address.split(',')[0] : '100 Feet Road, Indiranagar'}</p>
+            <p className="truncate">{address ? address.split(',').slice(1).join(',') : 'Bangalore, Karnataka - 560038'}</p>
+            <p>Phone: {phone || '+91 98765-43210'}</p>
+            <p>Email: {email || 'opd@medflowcare.com'}</p>
           </div>
         </div>
 

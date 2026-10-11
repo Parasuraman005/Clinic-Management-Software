@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain, shell, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, Menu, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 
 // Single instance lock to prevent duplicate app instances
@@ -99,15 +100,31 @@ function setupAutoUpdater() {
 function createWindow() {
   const isDev = process.env.ELECTRON === 'true' && !app.isPackaged;
 
+  // Resolve application icon: prefer public/favicon.ico
+  let appIconPath = path.join(__dirname, '../public/favicon.ico');
+  if (!fs.existsSync(appIconPath)) {
+    appIconPath = path.join(__dirname, '../dist/favicon.ico');
+  }
+  if (!fs.existsSync(appIconPath)) {
+    appIconPath = path.join(__dirname, 'icon.ico');
+  }
+  if (!fs.existsSync(appIconPath) || (process.platform !== 'win32' && fs.existsSync(path.join(__dirname, 'icon.png')))) {
+    appIconPath = path.join(__dirname, 'icon.png');
+  }
+
   mainWindow = new BrowserWindow({
-    width: 1366,
-    height: 860,
+    width: 1400,
+    height: 900,
     minWidth: 1024,
-    minHeight: 640,
+    minHeight: 700,
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
+    closable: true,
     title: 'MediFlow Clinic - Clinical OPD & Hospital Management System',
-    icon: path.join(__dirname, 'icon.png'),
-    frame: false, // Clean minimal window: removes default OS title bar, minimize, maximize, and close buttons
-    autoHideMenuBar: true, // Clean top area: removes default Electron menu bar
+    icon: appIconPath,
+    frame: true, // Native Windows frame with standard minimize, maximize, and close controls
+    autoHideMenuBar: true, // Completely hide default Electron menu bar
     backgroundColor: '#0f172a',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -118,8 +135,11 @@ function createWindow() {
     },
   });
 
-  // Explicitly remove window menu on Windows as well
+  // Explicitly remove window menu and guarantee no menu bar on Windows
   mainWindow.setMenu(null);
+  if (typeof mainWindow.setMenuBarVisibility === 'function') {
+    mainWindow.setMenuBarVisibility(false);
+  }
 
   // Keyboard shortcut handlers for window lifecycle and actions
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -156,23 +176,27 @@ function createWindow() {
 
   // Track window maximize / unmaximize events for renderer state
   mainWindow.on('maximize', () => {
-    if (!mainWindow.isDestroyed()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('window-maximize-changed', true);
     }
   });
   mainWindow.on('unmaximize', () => {
-    if (!mainWindow.isDestroyed()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('window-maximize-changed', false);
     }
   });
 
   // Intercept new window requests and open external links in default OS browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http:') || url.startsWith('https:') || url.startsWith('mailto:')) {
-      shell.openExternal(url);
-      return { action: 'deny' };
+    try {
+      const parsedUrl = new URL(url);
+      if (['http:', 'https:', 'mailto:', 'tel:'].includes(parsedUrl.protocol)) {
+        shell.openExternal(url).catch((err) => console.warn('[Electron] Failed to open external URL:', err));
+      }
+    } catch (e) {
+      console.warn('[Electron] Invalid external link URL:', url);
     }
-    return { action: 'allow' };
+    return { action: 'deny' };
   });
 
   // Safe navigation handler
@@ -181,8 +205,21 @@ function createWindow() {
     const isFile = navigationUrl.startsWith('file://');
     if (!isLocalhost && !isFile) {
       event.preventDefault();
-      shell.openExternal(navigationUrl);
+      try {
+        const parsedUrl = new URL(navigationUrl);
+        if (['http:', 'https:', 'mailto:', 'tel:'].includes(parsedUrl.protocol)) {
+          shell.openExternal(navigationUrl).catch((err) => console.warn('[Electron] Failed to open URL in browser:', err));
+        }
+      } catch (e) {
+        console.warn('[Electron] Invalid navigation URL:', navigationUrl);
+      }
     }
+  });
+
+  // Gracefully handle render process load failures
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription) => {
+    if (errorCode === -3) return; // ERR_ABORTED - benign abort during redirects
+    console.warn(`[Electron] Page failed to load (code: ${errorCode}): ${errorDescription}`);
   });
 
   // Load Dev Server or Production Build
@@ -193,14 +230,45 @@ function createWindow() {
       // Retry loading if dev server is still starting
       setTimeout(() => {
         if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.loadURL(devServerUrl);
+          mainWindow.loadURL(devServerUrl).catch((err) => {
+            console.error('[Electron] Dev server connection retry failed:', err?.message || err);
+          });
         }
       }, 1500);
     });
   } else {
     const indexPath = path.join(__dirname, '../dist/index.html');
-    console.log(`[Electron] Loading production bundle: ${indexPath}`);
-    mainWindow.loadFile(indexPath);
+    if (!fs.existsSync(indexPath)) {
+      console.error(`[Electron Error] Build file not found at ${indexPath}`);
+      const fallbackHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>MediFlow Clinic - Distribution Build Missing</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+            .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 36px; max-width: 520px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+            h2 { color: #38bdf8; margin-top: 0; font-size: 22px; }
+            p { color: #94a3b8; font-size: 14px; line-height: 1.6; }
+            code { background: #0f172a; padding: 4px 8px; border-radius: 6px; color: #38bdf8; font-family: monospace; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h2>Production Build Not Found</h2>
+            <p>The application bundle (<code>dist/index.html</code>) was not found. Please compile the web distribution first using <code>npm run build</code> or install the official release package.</p>
+          </div>
+        </body>
+        </html>
+      `;
+      mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fallbackHtml)}`);
+    } else {
+      console.log(`[Electron] Loading production bundle: ${indexPath}`);
+      mainWindow.loadFile(indexPath).catch((err) => {
+        console.error('[Electron] Failed to load production bundle:', err);
+      });
+    }
   }
 
   mainWindow.on('closed', () => {
@@ -288,6 +356,15 @@ if (!gotTheLock) {
         arch: process.arch,
         isPackaged: app.isPackaged,
       };
+    });
+
+    ipcMain.handle('show-save-dialog', async (_event, options = {}) => {
+      if (!mainWindow || mainWindow.isDestroyed()) return { canceled: true };
+      return await dialog.showSaveDialog(mainWindow, {
+        title: options?.title || 'Save File',
+        defaultPath: options?.defaultPath || 'document.pdf',
+        filters: options?.filters || [{ name: 'All Files', extensions: ['*'] }],
+      });
     });
 
     // Auto-updater IPC handlers

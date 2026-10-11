@@ -8,6 +8,7 @@ export { default as Doctors } from './Doctors';
 export { default as Footer } from './Footer';
 export { default as Header } from './Header';
 export { default as Help } from './Help';
+export { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 export { InvoicePrintModal, type InvoicePrintData } from './InvoicePrintModal';
 export { default as LoginPage, type UserRole } from './LoginPage';
 export { default as NotFound } from './NotFound';

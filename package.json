@@ -2,6 +2,8 @@
   "name": "mediflow-clinic",
   "private": true,
   "version": "1.0.0",
+  "description": "MediFlow Clinic - Clinical OPD & Hospital Management System",
+  "author": "MediFlow Healthcare Technologies",
   "main": "electron/main.cjs",
   "type": "module",
   "repository": {
@@ -16,7 +18,7 @@
     "lint": "tsc --noEmit",
     "electron:dev": "concurrently -k \"cross-env ELECTRON=true vite --port=3000\" \"wait-on tcp:3000 && cross-env ELECTRON=true electron electron/main.cjs\"",
     "electron:build": "vite build --base=./ && electron-builder --win",
-    "electron:build:dir": "vite build --base=./ && electron-builder --dir",
+    "electron:build:dir": "vite build --base=./ && electron-builder --win --dir",
     "electron:publish": "vite build --base=./ && electron-builder --win --publish always"
   },
   "dependencies": {
@@ -46,7 +48,7 @@
     "cross-env": "^10.1.0",
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.2",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",

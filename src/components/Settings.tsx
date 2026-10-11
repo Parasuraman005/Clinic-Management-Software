@@ -7,6 +7,7 @@ import {
   Database, Download, FileText, AlertTriangle, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 import { 
   getStorageStats, 
   downloadDatabaseJsonFile, 
@@ -28,80 +29,15 @@ type SettingsCategory =
   | 'preferences'
   | 'storage';
 
-const SETTINGS_STORAGE_KEY = 'medflow_system_settings';
-
-const defaultSettings = {
-  // 1. Clinic Information
-  clinicName: 'MedFlow Pro Healthcare Clinic',
-  tagline: 'Evidence-Based Outpatient & Specialty Care',
-  phone: '+91 98765-43210',
-  email: 'admin@medflowpro.com',
-  address: '123 Healthcare Boulevard, Medical District, Bangalore, KA 560001',
-  regNumber: 'CLINIC-REG-889922',
-  taxNumber: 'GSTIN29AAACM1234F1Z5',
-
-  // 2. Profile & Account
-  adminName: 'Dr. Sarah Chen (Chief Administrator)',
-  adminEmail: 'sarah.chen@medflow.com',
-  adminPhone: '+91 99887-11223',
-  designation: 'Medical Director & Administrator',
-  accountBio: 'Senior clinical director overseeing hospital throughput, patient experience and electronic medical records.',
-
-  // 3. Appointment Settings
-  slotDuration: '20',
-  bufferTime: '5',
-  maxOverbooking: '2',
-  autoConfirm: true,
-  dailyStartTime: '09:00 AM',
-  dailyEndTime: '06:00 PM',
-
-  // 4. Queue Settings
-  strictFifo: true,
-  autoCallNext: false,
-  maxQueueCapacity: '50',
-  avgConsultationTime: '15',
-  displayWaitTime: true,
-
-  // 5. Billing & Payment Settings
-  currency: 'INR (₹)',
-  taxRate: '5',
-  discountCap: '15',
-  invoicePrefix: 'INV-2023-',
-  enableUpi: true,
-  enableCard: true,
-  enableCash: true,
-
-  // 6. Notification Settings
-  smsAlerts: true,
-  emailReports: true,
-  patientRegistrationToast: true,
-  queueAudibleBeep: false,
-  dailyRevenueAlert: true,
-
-  // 7. Security & Password
-  twoFactorAuth: true,
-  sessionTimeout: '30',
-  requireComplexPassword: true,
-
-  // 8. System Preferences
-  dateFormat: 'DD/MM/YYYY',
-  compactDensity: true,
-  highContrast: false,
-  autoRefreshInterval: '60'
-};
-
 const Settings: React.FC = () => {
+  const { settings: sharedSettings, updateSettings } = useSharedSettings();
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>('clinic');
 
-  const [settings, setSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (saved) return { ...defaultSettings, ...JSON.parse(saved) };
-    } catch (e) {
-      console.error('Failed to load settings', e);
-    }
-    return defaultSettings;
-  });
+  const [settings, setSettings] = useState(sharedSettings);
+
+  useEffect(() => {
+    setSettings(sharedSettings);
+  }, [sharedSettings]);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -112,12 +48,8 @@ const Settings: React.FC = () => {
 
   const handleSave = (e: React.FormEvent, categoryName: string) => {
     e.preventDefault();
-    try {
-      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-    } catch (e) {
-      console.error('Failed to save settings', e);
-    }
-    showToast(`${categoryName} updated and saved successfully!`);
+    updateSettings(settings);
+    showToast(`${categoryName} updated and synchronized across all pages successfully!`);
   };
 
   const categories: Array<{ id: SettingsCategory; label: string; desc: string; icon: any }> = [

@@ -3,13 +3,13 @@ import {
   ListOrdered, Play, CheckCircle2, 
   Clock, AlertCircle, User, Trash2,
   Plus, X, Search, UserPlus, ShieldAlert,
-  ChevronRight, UserCheck, Pill, CreditCard, Stethoscope
+  ChevronRight, UserCheck, Pill, CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SearchSuggestions, { SuggestionItem } from './SearchSuggestions';
 import { useSearchSuggestions } from '../hooks/useSearchSuggestions';
 import { useSharedQueue, ExtendedQueueItem } from '../hooks/useSharedQueue';
-import { useSharedPayments, hasPatientCompletedPayment } from '../hooks/useSharedPayments';
+import { hasPatientCompletedPayment } from '../hooks/useSharedPayments';
 import { useSharedDoctors } from '../hooks/useSharedDoctors';
 import { useSharedPatients } from '../hooks/useSharedPatients';
 import { useActivePatientContext } from '../hooks/useActivePatientContext';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Download, RefreshCw, CheckCircle2, 
-  AlertCircle, X, ArrowRight, ShieldCheck, ChevronDown, ChevronUp 
+  AlertCircle, X, ShieldCheck, ChevronDown, ChevronUp 
 } from 'lucide-react';
 import { UpdateInfo, UpdateProgress } from '../types/electron';
 

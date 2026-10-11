@@ -9,6 +9,7 @@ import { Bill } from '../types';
 import { useSharedQueue } from '../hooks/useSharedQueue';
 import { useSharedPatients } from '../hooks/useSharedPatients';
 import { useSharedPayments } from '../hooks/useSharedPayments';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 
 const getStoredBills = (): Bill[] => {
   try {
@@ -26,6 +27,7 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
+  const { clinicName, adminName, dailyHours, formatCurrency } = useSharedSettings();
   const { queue, updateStatus } = useSharedQueue();
   const { patients } = useSharedPatients();
   const { payments } = useSharedPayments();
@@ -69,13 +71,17 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-slate-900 leading-tight">MedFlow Command Center</h2>
+              <h2 className="text-base font-bold text-slate-900 leading-tight">
+                {clinicName ? `${clinicName} Command Center` : 'MedFlow Command Center'}
+              </h2>
               <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[8pt] font-bold rounded-full border border-emerald-100 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Operational
               </span>
             </div>
-            <p className="text-xs text-slate-500">Welcome, Super Administrator · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+            <p className="text-xs text-slate-500">
+              Welcome, {adminName || 'Super Administrator'} · Hours: {dailyHours} · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </p>
           </div>
         </div>
 
@@ -256,8 +262,10 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
               <span className="text-xs font-bold text-emerald-300">92% of Daily Target</span>
             </div>
             <div className="flex items-baseline justify-between mb-2">
-              <span className="text-xl font-bold tabular-nums">₹48,200.00</span>
-              <span className="text-xs text-amber-200 font-semibold">₹12.5k Due</span>
+              <span className="text-xl font-bold tabular-nums">
+                {formatCurrency(totalRevenueNumber > 0 ? totalRevenueNumber : 48200)}
+              </span>
+              <span className="text-xs text-amber-200 font-semibold">{formatCurrency(12500)} Due</span>
             </div>
             <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
               <div className="bg-emerald-400 h-full rounded-full" style={{ width: '92%' }}></div>
@@ -283,7 +291,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
                     <span className="text-[8pt] text-slate-400 tabular-nums">{bill.id}</span>
                   </div>
                   <div className="text-right shrink-0">
-                    <span className="font-bold text-slate-900 tabular-nums">₹{bill.total.toLocaleString()}</span>
+                    <span className="font-bold text-slate-900 tabular-nums">{formatCurrency(bill.total)}</span>
                     <span className="text-[8pt] text-emerald-600 font-bold block">{bill.status}</span>
                   </div>
                 </div>

@@ -23,6 +23,7 @@ export interface ElectronAPI {
   openExternal: (url: string) => Promise<boolean>;
   print: (options?: { silent?: boolean; printBackground?: boolean }) => Promise<boolean>;
   getSystemInfo: () => Promise<{ appVersion: string; platform: string; arch: string; isPackaged: boolean }>;
+  showSaveDialog: (options?: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => Promise<{ canceled: boolean; filePath?: string }>;
   onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void;
 
   // Auto-Updater APIs

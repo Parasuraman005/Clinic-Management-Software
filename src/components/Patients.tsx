@@ -3,7 +3,7 @@ import {
   Search, Plus, Eye, Edit, 
   UserPlus, 
   ArrowLeft, Mail, Phone, MapPin, Droplets, ShieldCheck, 
-  Clock, FileText, Trash2,
+  Clock, Trash2,
   ChevronDown, CheckCircle2, Play, X, Pill, Stethoscope, CreditCard
 } from 'lucide-react';
 import { mockDoctors } from '../mockData';

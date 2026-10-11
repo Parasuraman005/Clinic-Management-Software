@@ -26,7 +26,8 @@ import {
   ToastContainer,
   type ToastMessage,
   type ToastType,
-  UpdateModal
+  UpdateModal,
+  KeyboardShortcutsModal
 } from './components';
 import { motion, AnimatePresence } from 'motion/react';
 import { initializeAllLocalStorage, applyLocalSeo } from './utils';
@@ -40,6 +41,74 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  // Global Keyboard Shortcuts Listener
+  React.useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input, textarea, or contenteditable
+      const target = e.target as HTMLElement;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+
+      if (e.key === '?' && !isInput) {
+        e.preventDefault();
+        setShowShortcutsModal(prev => !prev);
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        setShowShortcutsModal(false);
+        return;
+      }
+
+      if (e.altKey && appState === 'authenticated') {
+        const key = e.key.toLowerCase();
+        switch (key) {
+          case 'd':
+            e.preventDefault();
+            setActiveTab('dashboard');
+            break;
+          case 'p':
+            e.preventDefault();
+            setActiveTab('patients');
+            break;
+          case 'a':
+            e.preventDefault();
+            setActiveTab('appointments');
+            break;
+          case 'q':
+            e.preventDefault();
+            setActiveTab('queue');
+            break;
+          case 'c':
+            e.preventDefault();
+            setActiveTab('consultation');
+            break;
+          case 'r':
+            e.preventDefault();
+            setActiveTab('prescriptions');
+            break;
+          case 'b':
+            e.preventDefault();
+            setActiveTab('billing');
+            break;
+          case 'n':
+            e.preventDefault();
+            setActiveTab('payments');
+            break;
+          case 's':
+            e.preventDefault();
+            setActiveTab('settings');
+            break;
+          default:
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [appState]);
 
   // Initialize Local JSON Storage Engine on app start
   React.useEffect(() => {
@@ -157,7 +226,13 @@ export default function App() {
       />
       
       <div className="flex-1 lg:ml-20 flex flex-col h-screen overflow-hidden min-w-0">
-        <Header setIsOpen={setSidebarOpen} activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} />
+        <Header 
+          setIsOpen={setSidebarOpen} 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          currentUser={currentUser} 
+          onOpenShortcuts={() => setShowShortcutsModal(true)}
+        />
           
           <main className="flex-1 overflow-y-auto p-4 md:p-8 w-full">
             <div className="max-w-[1600px] mx-auto">
@@ -180,6 +255,7 @@ export default function App() {
 
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
       <UpdateModal />
+      <KeyboardShortcutsModal isOpen={showShortcutsModal} onClose={() => setShowShortcutsModal(false)} />
     </div>
   );
 }

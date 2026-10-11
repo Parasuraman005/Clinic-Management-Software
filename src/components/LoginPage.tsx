@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Mail, Lock, Eye, EyeOff, CheckCircle2, AlertCircle, 
-  ChevronDown, UserCircle, ShieldCheck, KeyRound, 
-  Users, ChevronRight, Sparkles 
+  ChevronDown, UserCircle, 
+  Users, ChevronRight 
 } from 'lucide-react';
 import mediLogo from '../assets/images/medi-logo.jpg';
 import { useSharedUsers } from '../hooks/useSharedUsers';

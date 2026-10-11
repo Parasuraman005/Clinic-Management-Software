@@ -1,13 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Users, UserPlus, Search, 
-  Mail, Phone, Clock, Key, Eye, Edit, 
+  Mail, Phone, Key, Eye, 
   Trash2, CheckCircle2, Droplets, MapPin,
   ShieldCheck, AlertCircle, ArrowLeft,
-  Download, LayoutGrid, List, Building,
-  Stethoscope, Receipt, X, Lock, Upload, User
+  Download, LayoutGrid, List,
+  Receipt, X, Lock, Upload, User
 } from 'lucide-react';
-import { mockUsers } from '../mockData';
 import { UserAccount } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { formatIndianPhone } from '../utils/formatters';

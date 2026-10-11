@@ -4,6 +4,7 @@ import {
   ClipboardList, CreditCard, Receipt, BarChart3, 
   Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen, Power
 } from 'lucide-react';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 import clinicLogo from '../assets/images/medi-logo.jpg';
 
 interface SidebarProps {
@@ -38,6 +39,7 @@ const AppLogoIcon: React.FC<{ size?: number; className?: string }> = () => (
 );
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setIsOpen, onLogout }) => {
+  const { clinicName, tagline } = useSharedSettings();
   const [isHovered, setIsHovered] = React.useState(false);
   const [isPinned, setIsPinned] = React.useState(false);
 
@@ -138,8 +140,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, setI
               <img src={clinicLogo} alt="MediFlow Logo" className="w-full h-full object-contain rounded-lg" />
             </div>
             <div className={`transition-all duration-200 ${isExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-              <p className="text-xs font-bold text-slate-900 leading-tight">MedFlow Pro</p>
-              <p className="text-[9px] text-slate-400 font-mono">v3.4.2 Enterprise</p>
+              <p className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[150px]">{clinicName || 'MedFlow Pro'}</p>
+              <p className="text-[9px] text-slate-400 font-medium truncate max-w-[150px]">{tagline || 'Clinical OPD & Hospital'}</p>
             </div>
           </div>
 

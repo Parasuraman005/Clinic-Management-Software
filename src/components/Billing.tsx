@@ -15,8 +15,9 @@ import { Patient } from '../types';
 import { InvoicePrintModal } from './InvoicePrintModal';
 import { addPaymentRecord } from '../hooks/useSharedPayments';
 import { useSharedPatients } from '../hooks/useSharedPatients';
-import { useSharedQueue, checkAndRemoveCompletedPatientFromQueue } from '../hooks/useSharedQueue';
+import { checkAndRemoveCompletedPatientFromQueue } from '../hooks/useSharedQueue';
 import { useActivePatientContext } from '../hooks/useActivePatientContext';
+import { useSharedSettings } from '../hooks/useSharedSettings';
 
 interface BillingProps {
   setActiveTab: (tab: string) => void;
@@ -30,6 +31,7 @@ interface LineItem {
 }
 
 const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
+  const { clinicName, address, taxNumber, currencySymbol, taxRate: defaultTaxRate } = useSharedSettings();
   const { patients } = useSharedPatients();
   const { activePatient, setActivePatient: setGlobalActivePatient, pendingBillItems } = useActivePatientContext();
 
@@ -80,7 +82,7 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   // Financial inputs state
   const [discountType, setDiscountType] = useState<'flat' | 'percent'>('flat');
   const [discountInput, setDiscountInput] = useState<number>(0);
-  const [taxRate, setTaxRate] = useState<number>(5); // Standard 5% GST (2.5% CGST + 2.5% SGST)
+  const [taxRate, setTaxRate] = useState<number>(defaultTaxRate || 5); // From clinic settings
   const [notes, setNotes] = useState<string>('');
   const [customAmountPaid, setCustomAmountPaid] = useState<number | null>(null);
 
@@ -380,11 +382,15 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-medical-primary to-cyan-600 rounded-xl flex items-center justify-center text-white font-bold text-base shadow-xs shrink-0">
-                    M
+                    {(clinicName || 'M').charAt(0)}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 leading-tight">MedFlow Healthcare Center</h3>
-                    <p className="text-[11px] text-slate-500">123 Healthcare Blvd, Bangalore, KA • GSTIN: 29AAACM1234F1Z5</p>
+                    <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                      {clinicName || 'MedFlow Healthcare Center'}
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      {address || '123 Healthcare Blvd, Bangalore, KA'} • GSTIN: {taxNumber || '29AAACM1234F1Z5'}
+                    </p>
                   </div>
                 </div>
 
@@ -458,8 +464,8 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                   <tr className="bg-slate-50 border-b border-slate-100 font-bold text-slate-600">
                     <th className="px-5 py-3">Description & Service Name</th>
                     <th className="px-3 py-3 text-center w-20">Qty</th>
-                    <th className="px-3 py-3 text-right w-28">Rate (₹)</th>
-                    <th className="px-4 py-3 text-right w-32">Total (₹)</th>
+                    <th className="px-3 py-3 text-right w-28">Rate ({currencySymbol})</th>
+                    <th className="px-4 py-3 text-right w-32">Total ({currencySymbol})</th>
                     <th className="px-4 py-3 text-center w-12"></th>
                   </tr>
                 </thead>
@@ -504,7 +510,7 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                         </td>
                         <td className="px-3 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <span className="text-slate-400 font-mono">₹</span>
+                            <span className="text-slate-400 font-mono">{currencySymbol}</span>
                             <input 
                               type="number" 
                               min="0"
@@ -516,7 +522,7 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                           </div>
                         </td>
                         <td className="px-4 py-2.5 text-right font-bold text-slate-900 tabular-nums font-mono text-xs">
-                          ₹{itemTotal.toFixed(2)}
+                          {currencySymbol}{itemTotal.toFixed(2)}
                         </td>
                         <td className="px-4 py-2.5 text-center">
                           <button 
@@ -594,7 +600,7 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                 <div className="flex justify-between items-center text-slate-600">
                   <span>Gross Subtotal</span>
                   <span className="font-mono font-bold text-slate-900 tabular-nums">
-                    ₹{calculations.subtotal.toFixed(2)}
+                    {currencySymbol}{calculations.subtotal.toFixed(2)}
                   </span>
                 </div>
 
@@ -606,9 +612,9 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                       type="button"
                       onClick={() => setDiscountType(discountType === 'flat' ? 'percent' : 'flat')}
                       className="px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-[10px] font-bold text-slate-700 uppercase"
-                      title="Toggle Flat (₹) vs Percent (%)"
+                      title={`Toggle Flat (${currencySymbol}) vs Percent (%)`}
                     >
-                      {discountType === 'flat' ? '₹ Flat' : '% Pct'}
+                      {discountType === 'flat' ? `${currencySymbol} Flat` : '% Pct'}
                     </button>
                   </div>
                   <div className="flex items-center gap-1">
@@ -629,7 +635,7 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                 {calculations.discountAmount > 0 && (
                   <div className="flex justify-between items-center text-slate-500 text-[11px] italic">
                     <span>Taxable Base</span>
-                    <span className="font-mono tabular-nums">₹{calculations.taxableAmount.toFixed(2)}</span>
+                    <span className="font-mono tabular-nums">{currencySymbol}{calculations.taxableAmount.toFixed(2)}</span>
                   </div>
                 )}
 
@@ -638,20 +644,20 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                   <>
                     <div className="flex justify-between items-center text-slate-600">
                       <span>CGST ({(taxRate / 2).toFixed(1)}%)</span>
-                      <span className="font-mono tabular-nums">₹{calculations.cgstAmount.toFixed(2)}</span>
+                      <span className="font-mono tabular-nums">{currencySymbol}{calculations.cgstAmount.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between items-center text-slate-600">
                       <span>SGST ({(taxRate / 2).toFixed(1)}%)</span>
-                      <span className="font-mono tabular-nums">₹{calculations.sgstAmount.toFixed(2)}</span>
+                      <span className="font-mono tabular-nums">{currencySymbol}{calculations.sgstAmount.toFixed(2)}</span>
                     </div>
                   </>
                 )}
 
                 {/* 5. Grand Total */}
                 <div className="pt-2 border-t-2 border-slate-300 flex justify-between items-center text-sm font-bold text-slate-900 bg-slate-100/80 p-2 rounded-xl">
-                  <span>Grand Total (INR)</span>
+                  <span>Grand Total</span>
                   <span className="font-mono text-base text-medical-primary tabular-nums">
-                    ₹{calculations.grandTotal.toFixed(2)}
+                    {currencySymbol}{calculations.grandTotal.toFixed(2)}
                   </span>
                 </div>
 
@@ -659,13 +665,13 @@ const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                 {calculations.balanceDue > 0 && (
                   <div className="flex justify-between items-center text-rose-600 font-bold text-xs pt-1">
                     <span>Balance Due</span>
-                    <span className="font-mono tabular-nums">₹{calculations.balanceDue.toFixed(2)}</span>
+                    <span className="font-mono tabular-nums">{currencySymbol}{calculations.balanceDue.toFixed(2)}</span>
                   </div>
                 )}
                 {calculations.changeReturn > 0 && (
                   <div className="flex justify-between items-center text-emerald-600 font-bold text-xs pt-1">
                     <span>Change to Return</span>
-                    <span className="font-mono tabular-nums">₹{calculations.changeReturn.toFixed(2)}</span>
+                    <span className="font-mono tabular-nums">{currencySymbol}{calculations.changeReturn.toFixed(2)}</span>
                   </div>
                 )}
               </div>
